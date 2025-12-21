@@ -1,0 +1,2795 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Смета застолья</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #e85d6c;
+            --primary-hover: #d64d5c;
+            --secondary: #e8e6df;
+            --secondary-hover: #dddbd4;
+            --success: #5cb85c;
+            --success-light: #7ce992;
+            --danger: #e74c3c;
+            --warning: #f0ad4e;
+            --bg-main: #FDFDFE;
+            --bg-card: #FDFDFE;
+            --bg-input: #ffffff;
+            --bg-header: #f8f8fa;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --text-light: #ffffff;
+            --border: #e5e5e8;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-fast: all 0.15s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-main);
+            min-height: 100vh;
+            padding: 20px;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes checkmark {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .card:hover { box-shadow: var(--shadow-lg); }
+
+        header {
+            background: var(--bg-header);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        .section-header { margin-bottom: 16px; }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn:hover { transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: var(--text-light);
+            box-shadow: 0 2px 8px rgba(232, 93, 108, 0.3);
+        }
+
+        .btn-primary:hover { box-shadow: 0 4px 12px rgba(232, 93, 108, 0.4); }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover { background: var(--secondary-hover); }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #4a9d4a 100%);
+            color: var(--text-light);
+            box-shadow: 0 2px 8px rgba(92, 184, 92, 0.3);
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, var(--success-light) 0%, var(--success) 100%);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            padding: 6px 12px;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: var(--text-light);
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+
+        .btn-delete:hover { background: #c0392b; }
+
+        .btn-back {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--text-primary);
+        }
+
+        .btn-small {
+            font-size: 0.75rem;
+            padding: 5px 10px;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 6px 10px;
+        }
+
+        .btn-ghost:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: var(--text-primary);
+        }
+
+        .participants-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .participants-section label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .participants-section textarea {
+            flex: 1;
+            min-width: 200px;
+            height: 40px;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            resize: none;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: var(--transition);
+            background: var(--bg-input);
+        }
+
+        .participants-section textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(232, 93, 108, 0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .input-field {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: var(--transition);
+            background: var(--bg-input);
+            width: 100%;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(232, 93, 108, 0.1);
+        }
+
+        .main-field {
+            min-height: 200px;
+            padding: 16px;
+        }
+
+        .type-row {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: var(--text-light);
+            padding: 14px 18px;
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .type-row:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .type-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .type-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .type-actions { display: flex; gap: 8px; }
+
+        .dish-row {
+            background: var(--bg-input);
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin: 6px 0 6px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+            transition: var(--transition);
+            border: 2px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .dish-row:hover {
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .dish-row:active { cursor: grabbing; }
+
+        .dish-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .dish-actions { display: flex; gap: 6px; }
+
+        .ingredient-row {
+            background: var(--bg-input);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            margin: 4px 0 4px 48px;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr auto;
+            gap: 12px;
+            align-items: center;
+            font-size: 0.85rem;
+            cursor: grab;
+            transition: var(--transition);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--secondary);
+        }
+
+        .ingredient-row:hover {
+            background: #fafafa;
+            border-left-color: var(--primary);
+        }
+
+        .ingredient-row span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ingredient-name { font-weight: 500; }
+        .ingredient-quantity { color: var(--text-secondary); }
+        .ingredient-price { color: var(--success); font-weight: 500; }
+        .ingredient-shop { color: var(--text-secondary); font-size: 0.8rem; }
+
+        .total-row {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            margin: 4px 0 4px 48px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #155724;
+        }
+
+        .per-each-row {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            margin: 4px 0 8px 48px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #856404;
+        }
+
+        .per-person-section { background: var(--bg-card); }
+
+        .per-person-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .per-person-item {
+            background: var(--bg-input);
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .per-person-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .per-person-name { font-weight: 500; }
+
+        .per-person-amount {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .norms-section { overflow-x: auto; }
+
+        .norms-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.85rem;
+        }
+
+        .norms-table th,
+        .norms-table td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .norms-table th {
+            background: var(--secondary);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .norms-table th:first-child {
+            border-radius: var(--radius) 0 0 0;
+            text-align: left;
+        }
+
+        .norms-table th:last-child { border-radius: 0 var(--radius) 0 0; }
+
+        .norms-table tbody tr { transition: var(--transition-fast); }
+        .norms-table tbody tr:hover { background: rgba(0, 0, 0, 0.02); }
+
+        .norms-table input[type="number"] {
+            width: 70px;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            text-align: center;
+            font-family: inherit;
+            transition: var(--transition);
+        }
+
+        .norms-table input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .norms-table select {
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 90px;
+        }
+
+        .norms-table select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .norm-kg {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .norm-details {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .participant-header { min-width: 110px; padding: 8px !important; }
+
+        .calorie-input {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .calorie-input input { width: 65px; font-size: 0.8rem; }
+
+        .type-header-row td { border-bottom: 2px solid var(--border) !important; }
+
+        .shopping-section { background: var(--bg-card); }
+
+        .shopping-stats {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            width: 120px;
+            height: 8px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, var(--success-light) 100%);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .shopping-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shopping-item {
+            background: var(--bg-input);
+            padding: 14px 16px;
+            border-radius: var(--radius);
+            display: grid;
+            grid-template-columns: auto 1fr 100px 120px 100px;
+            gap: 16px;
+            align-items: center;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .shopping-item:hover { box-shadow: var(--shadow-lg); }
+
+        .shopping-item.purchased {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            opacity: 0.8;
+        }
+
+        .shopping-item.purchased .shopping-item-name,
+        .shopping-item.purchased .shopping-item-quantity,
+        .shopping-item.purchased .shopping-item-shop {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .shopping-header {
+            background: var(--secondary);
+            font-weight: 600;
+            box-shadow: none;
+            border: none;
+        }
+
+        .shopping-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--success);
+            transition: var(--transition);
+        }
+
+        .shopping-checkbox:checked { animation: checkmark 0.3s ease; }
+
+        .shopping-item-name {
+            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .shopping-item-quantity { color: var(--text-secondary); }
+        .shopping-item-shop { color: var(--text-secondary); font-size: 0.85rem; }
+
+        .shopping-item-price {
+            font-weight: 600;
+            color: var(--primary);
+            text-align: right;
+        }
+
+        .shopping-total {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: var(--text-light);
+            font-weight: 600;
+            margin-top: 8px;
+            border: none;
+        }
+
+        .shopping-total .shopping-item-price {
+            color: var(--text-light);
+            font-size: 1.1rem;
+        }
+
+        .summary-section { background: var(--bg-card); }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-card {
+            background: var(--bg-input);
+            padding: 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .summary-card.highlight {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            border: none;
+        }
+
+        .summary-card.highlight .summary-value,
+        .summary-card.highlight .summary-label { color: var(--text-light); }
+
+        .session-code-section { background: var(--bg-card); }
+
+        .session-code-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .session-code-textarea {
+            width: 100%;
+            min-height: 100px;
+            max-height: 200px;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            line-height: 1.4;
+            resize: vertical;
+            background: #f8f9fa;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .session-code-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .session-code-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .import-session {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .import-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+            background: var(--bg-input);
+            transition: var(--transition);
+        }
+
+        .import-textarea:focus {
+            outline: none;
+            border-color: var(--success);
+            box-shadow: 0 0 0 3px rgba(92, 184, 92, 0.1);
+        }
+
+        .session-page {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .sessions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .session-item {
+            background: var(--bg-input);
+            padding: 16px;
+            border-radius: var(--radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .session-item:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .session-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .session-name { font-weight: 600; font-size: 1rem; }
+        .session-date { font-size: 0.8rem; color: var(--text-secondary); }
+        .session-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .create-session { display: flex; gap: 12px; }
+        .create-session input { flex: 1; }
+
+        .empty-message {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-style: italic;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 28px;
+            border-radius: var(--radius-lg);
+            max-width: 500px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+            border: 1px solid var(--border);
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: var(--transition);
+            background: var(--bg-input);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(232, 93, 108, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 8px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .participants-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--bg-input);
+            border-radius: var(--radius);
+            border: 2px solid var(--border);
+        }
+
+        .participant-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            padding: 6px 10px;
+            background: var(--secondary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .participant-checkbox:hover { background: var(--secondary-hover); }
+        .participant-checkbox input { accent-color: var(--primary); }
+
+        .color-picker-group { flex-direction: row !important; align-items: center; }
+
+        .color-picker-group input[type="color"] {
+            width: 50px;
+            height: 40px;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--text-primary);
+            color: var(--text-light);
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); color: var(--text-primary); }
+
+        .dragging { opacity: 0.5; transform: scale(0.98); }
+        .drag-over { border-top: 3px solid var(--primary) !important; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            header { padding: 16px; }
+            h1 { font-size: 1.4rem; }
+            .header-top { flex-direction: column; align-items: flex-start; }
+            .toolbar { flex-direction: column; }
+            .toolbar .btn { width: 100%; }
+            .ingredient-row { grid-template-columns: 1fr 1fr; margin-left: 24px; }
+            .shopping-item { grid-template-columns: auto 1fr auto; }
+            .shopping-item-shop, .shopping-item-quantity { display: none; }
+            .form-row { grid-template-columns: 1fr; }
+            .per-person-list { grid-template-columns: 1fr; }
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .session-code-actions { flex-direction: column; }
+            .session-code-actions .btn { width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .shopping-item { grid-template-columns: auto 1fr; gap: 8px; }
+            .shopping-item-price { grid-column: 2; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ========== СТРАНИЦА СЕССИЙ ========== -->
+        <div id="sessionsPage">
+            <div class="card fade-in">
+                <h1>Смета застолья</h1>
+                <p class="subtitle">Планируйте праздники легко</p>
+            </div>
+
+            <div class="card fade-in">
+                <h2>Мои сессии</h2>
+                <div id="sessionsList" class="sessions-list"></div>
+            </div>
+
+            <div class="card fade-in">
+                <h2>Создать новую сессию</h2>
+                <div class="create-session">
+                    <input type="text" id="newSessionName" class="input-field" placeholder="Название праздника">
+                    <button class="btn btn-primary" onclick="createSession()">Создать</button>
+                </div>
+            </div>
+
+            <div class="card fade-in">
+                <h2>Войти по коду сессии</h2>
+                <div class="import-session">
+                    <textarea id="importCode" class="import-textarea" placeholder="Вставьте код сессии сюда..."></textarea>
+                    <button class="btn btn-success" onclick="importSession()">Импортировать</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== СТРАНИЦА КАЛЬКУЛЯТОРА ========== -->
+        <div id="calculatorPage" class="hidden">
+            <header class="fade-in">
+                <div class="header-top">
+                    <button class="btn btn-back" onclick="goToSessions()">← Назад</button>
+                    <h1 id="sessionTitle">Смета застолья</h1>
+                </div>
+
+                <div class="participants-section">
+                    <label>Участники:</label>
+                    <textarea id="participantsInput" placeholder="Введите имена через запятую или число участников"></textarea>
+                    <button class="btn btn-secondary" onclick="applyParticipants()">Применить</button>
+                </div>
+
+                <div class="toolbar">
+                    <button class="btn btn-primary" onclick="showTypeModal()">+ Добавить тип</button>
+                    <button class="btn btn-primary" onclick="showDishModal()">+ Добавить блюдо</button>
+                </div>
+            </header>
+
+            <main id="mainField" class="main-field card fade-in"></main>
+
+            <section id="perPersonSection" class="per-person-section card fade-in hidden">
+                <h3>С каждого участника</h3>
+                <div id="perPersonList"></div>
+            </section>
+
+            <section id="normsSection" class="norms-section card fade-in hidden">
+                <div class="section-header">
+                    <h3>Таблица предпочтений</h3>
+                    <p class="section-subtitle">Укажите, кто что будет есть</p>
+                </div>
+                <div id="normsTable"></div>
+            </section>
+
+            <section class="shopping-section card fade-in">
+                <div class="section-header">
+                    <h3>Список покупок</h3>
+                    <div class="shopping-stats">
+                        <span id="purchasedCount">0</span> / <span id="totalCount">0</span> куплено
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="shoppingList"></div>
+            </section>
+
+            <section class="summary-section card fade-in">
+                <div class="section-header">
+                    <h3>Итоговая смета</h3>
+                </div>
+                <div id="summaryContent"></div>
+            </section>
+
+            <section class="session-code-section card fade-in">
+                <div class="section-header">
+                    <h3>Код сессии</h3>
+                    <p class="section-subtitle">Скопируйте код для сохранения или передачи другим участникам</p>
+                </div>
+                <div class="session-code-container">
+                    <textarea id="sessionCodeArea" class="session-code-textarea" readonly></textarea>
+                    <div class="session-code-actions">
+                        <button class="btn btn-primary" onclick="copySessionCode()">📋 Копировать код</button>
+                        <button class="btn btn-secondary" onclick="downloadSessionCode()">💾 Скачать файл</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="modalOverlay" class="modal-overlay hidden" onclick="if(event.target===this)closeModal()">
+        <div id="modalContent" class="modal-content"></div>
+    </div>
+
+    <!-- Toast контейнер -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script>
+        // ============================================
+        // КОДИРОВАНИЕ/ДЕКОДИРОВАНИЕ
+        // ============================================
+        function encodeToBase64(str) {
+            try {
+                const utf8Bytes = new TextEncoder().encode(str);
+                let binary = '';
+                for (let i = 0; i < utf8Bytes.length; i++) {
+                    binary += String.fromCharCode(utf8Bytes[i]);
+                }
+                return btoa(binary);
+            } catch (e) {
+                console.error('Encode error:', e);
+                return null;
+            }
+        }
+
+        function decodeFromBase64(base64) {
+            try {
+                const binary = atob(base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+                return new TextDecoder().decode(bytes);
+            } catch (e) {
+                console.error('Decode error:', e);
+                return null;
+            }
+        }
+
+        // ============================================
+        // STATE
+        // ============================================
+        let state = {
+            sessionId: null,
+            sessionName: '',
+            participants: [],
+            participantCount: 0,
+            types: [],
+            dishes: [],
+            ingredients: [],
+            norms: {},
+            participantCalories: {},
+            purchased: {}
+        };
+
+        let allSessions = [];
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllSessions();
+            renderSessions();
+        });
+
+        function loadAllSessions() {
+            try {
+                const saved = localStorage.getItem('partySessions');
+                allSessions = saved ? JSON.parse(saved) : [];
+            } catch (e) {
+                console.error('Load sessions error:', e);
+                allSessions = [];
+            }
+        }
+
+        function saveAllSessions() {
+            try {
+                localStorage.setItem('partySessions', JSON.stringify(allSessions));
+            } catch (e) {
+                console.error('Save sessions error:', e);
+                showToast('Ошибка сохранения', 'error');
+            }
+        }
+
+        // ============================================
+        // SESSIONS PAGE
+        // ============================================
+        function renderSessions() {
+            const container = document.getElementById('sessionsList');
+
+            if (allSessions.length === 0) {
+                container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
+                return;
+            }
+
+            container.innerHTML = allSessions.map((session, index) => `
+                <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
+                    <div class="session-info">
+                        <span class="session-name">${escapeHtml(session.name)}</span>
+                        <span class="session-date">${formatDate(session.created)}</span>
+                    </div>
+                    <div class="session-actions">
+                        <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
+                        <button class="btn btn-secondary btn-small" onclick="exportSessionFromList('${session.id}')">Код</button>
+                        <button class="btn btn-delete btn-small" onclick="deleteSession('${session.id}')">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function createSession() {
+            const nameInput = document.getElementById('newSessionName');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                showToast('Введите название праздника', 'warning');
+                nameInput.focus();
+                return;
+            }
+
+            const newSession = {
+                id: 'session_' + Date.now(),
+                name: name,
+                created: new Date().toISOString(),
+                data: {
+                    participants: [],
+                    participantCount: 0,
+                    types: [],
+                    dishes: [],
+                    ingredients: [],
+                    norms: {},
+                    participantCalories: {},
+                    purchased: {}
+                }
+            };
+
+            allSessions.push(newSession);
+            saveAllSessions();
+            nameInput.value = '';
+            showToast('Сессия создана!', 'success');
+            openSession(newSession.id);
+        }
+
+        function openSession(sessionId) {
+            const session = allSessions.find(s => s.id === sessionId);
+            if (!session) {
+                showToast('Сессия не найдена', 'error');
+                return;
+            }
+
+            state.sessionId = session.id;
+            state.sessionName = session.name;
+            state.participants = session.data.participants || [];
+            state.participantCount = session.data.participantCount || 0;
+            state.types = session.data.types || [];
+            state.dishes = session.data.dishes || [];
+            state.ingredients = session.data.ingredients || [];
+            state.norms = session.data.norms || {};
+            state.participantCalories = session.data.participantCalories || {};
+            state.purchased = session.data.purchased || {};
+
+            document.getElementById('sessionTitle').textContent = session.name;
+            document.getElementById('sessionsPage').classList.add('hidden');
+            document.getElementById('calculatorPage').classList.remove('hidden');
+
+            if (state.participants.length > 0) {
+                document.getElementById('participantsInput').value = state.participants.join(', ');
+            } else if (state.participantCount > 0) {
+                document.getElementById('participantsInput').value = state.participantCount.toString();
+            } else {
+                document.getElementById('participantsInput').value = '';
+            }
+
+            render();
+        }
+
+        function goToSessions() {
+            document.getElementById('calculatorPage').classList.add('hidden');
+            document.getElementById('sessionsPage').classList.remove('hidden');
+            state.sessionId = null;
+            renderSessions();
+        }
+
+        function deleteSession(sessionId) {
+            if (!confirm('Удалить эту сессию? Это действие нельзя отменить.')) return;
+
+            allSessions = allSessions.filter(s => s.id !== sessionId);
+            saveAllSessions();
+            showToast('Сессия удалена', 'success');
+            renderSessions();
+        }
+
+        // ============================================
+        // IMPORT/EXPORT
+        // ============================================
+        function generateSessionCode(session) {
+            try {
+                const exportData = {
+                    v: 1,
+                    name: session.name,
+                    created: session.created,
+                    data: session.data
+                };
+                return encodeToBase64(JSON.stringify(exportData));
+            } catch (e) {
+                console.error('Generate code error:', e);
+                return null;
+            }
+        }
+
+        function parseSessionCode(code) {
+            try {
+                code = code.trim().replace(/\s/g, '');
+                const json = decodeFromBase64(code);
+                if (!json) throw new Error('Decode failed');
+                const data = JSON.parse(json);
+                if (!data.name || !data.data) throw new Error('Invalid structure');
+                return data;
+            } catch (e) {
+                console.error('Parse code error:', e);
+                return null;
+            }
+        }
+
+        function importSession() {
+            const codeArea = document.getElementById('importCode');
+            const code = codeArea.value.trim();
+
+            if (!code) {
+                showToast('Вставьте код сессии', 'warning');
+                codeArea.focus();
+                return;
+            }
+
+            const parsed = parseSessionCode(code);
+
+            if (!parsed) {
+                showToast('Ошибка: неверный код сессии', 'error');
+                return;
+            }
+
+            const newSession = {
+                id: 'session_' + Date.now(),
+                name: parsed.name + ' (импорт)',
+                created: new Date().toISOString(),
+                data: parsed.data
+            };
+
+            allSessions.push(newSession);
+            saveAllSessions();
+            codeArea.value = '';
+            showToast('Сессия импортирована!', 'success');
+            openSession(newSession.id);
+        }
+
+        function exportSessionFromList(sessionId) {
+            const session = allSessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            const code = generateSessionCode(session);
+            if (!code) {
+                showToast('Ошибка генерации кода', 'error');
+                return;
+            }
+
+            copyToClipboard(code);
+            showToast('Код скопирован!', 'success');
+        }
+
+        function updateSessionCode() {
+            const session = allSessions.find(s => s.id === state.sessionId);
+            if (!session) return;
+
+            const code = generateSessionCode(session);
+            const codeArea = document.getElementById('sessionCodeArea');
+            if (code && codeArea) {
+                codeArea.value = code;
+            }
+        }
+
+        function copySessionCode() {
+            const codeArea = document.getElementById('sessionCodeArea');
+            if (!codeArea.value) {
+                showToast('Нет кода для копирования', 'warning');
+                return;
+            }
+            copyToClipboard(codeArea.value);
+            showToast('Код скопирован!', 'success');
+        }
+
+        function downloadSessionCode() {
+            const session = allSessions.find(s => s.id === state.sessionId);
+            if (!session) return;
+
+            const code = generateSessionCode(session);
+            if (!code) {
+                showToast('Ошибка генерации кода', 'error');
+                return;
+            }
+
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = session.name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') + '_session.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Файл скачан!', 'success');
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try { document.execCommand('copy'); } catch (e) { }
+            document.body.removeChild(textarea);
+        }
+
+        // ============================================
+        // SAVE SESSION
+        // ============================================
+        function saveSession() {
+            const index = allSessions.findIndex(s => s.id === state.sessionId);
+            if (index !== -1) {
+                allSessions[index].data = {
+                    participants: state.participants,
+                    participantCount: state.participantCount,
+                    types: state.types,
+                    dishes: state.dishes,
+                    ingredients: state.ingredients,
+                    norms: state.norms,
+                    participantCalories: state.participantCalories,
+                    purchased: state.purchased
+                };
+                saveAllSessions();
+            }
+            updateSessionCode();
+        }
+
+        // ============================================
+        // PARTICIPANTS
+        // ============================================
+        function applyParticipants() {
+            const input = document.getElementById('participantsInput').value.trim();
+
+            if (!input) {
+                state.participants = [];
+                state.participantCount = 0;
+            } else if (/^\d+$/.test(input)) {
+                state.participants = [];
+                state.participantCount = parseInt(input);
+            } else {
+                state.participants = input.split(',').map(p => p.trim()).filter(p => p);
+                state.participantCount = state.participants.length;
+            }
+
+            state.participants.forEach(p => {
+                if (!state.participantCalories[p]) {
+                    state.participantCalories[p] = 2000;
+                }
+            });
+
+            state.dishes.forEach(dish => {
+                if (!state.norms[dish.id]) {
+                    state.norms[dish.id] = {};
+                }
+                state.participants.forEach(p => {
+                    if (state.norms[dish.id][p] === undefined) {
+                        state.norms[dish.id][p] = 2;
+                    }
+                });
+            });
+
+            saveSession();
+            render();
+            showToast('Участники обновлены', 'success');
+        }
+
+        // ============================================
+        // MODAL
+        // ============================================
+        function showModal(content) {
+            document.getElementById('modalContent').innerHTML = content;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // ============================================
+        // TYPE FUNCTIONS
+        // ============================================
+        function showTypeModal(editId = null) {
+            const type = editId ? state.types.find(t => t.id === editId) : null;
+            const isEdit = !!type;
+
+            const participantsHtml = state.participants.length > 0 ? `
+                <div class="form-group">
+                    <label>Для кого:</label>
+                    <div class="participants-checkboxes">
+                        <label class="participant-checkbox">
+                            <input type="checkbox" id="typeForAll" ${!type || type.forAll ? 'checked' : ''}>
+                            Для всех
+                        </label>
+                        ${state.participants.map(p => `
+                            <label class="participant-checkbox">
+                                <input type="checkbox" class="type-participant" value="${escapeHtml(p)}" 
+                                    ${type && type.participants && type.participants.includes(p) ? 'checked' : ''}>
+                                ${escapeHtml(p)}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : `
+                <div class="form-group">
+                    <label>Количество человек для расчета:</label>
+                    <input type="number" id="typePersonCount" class="input-field" min="1" 
+                        value="${type ? type.personCount || state.participantCount || 1 : state.participantCount || 1}">
+                </div>
+            `;
+
+            showModal(`
+                <h3>${isEdit ? 'Редактирование типа' : 'Добавление типа'}</h3>
+                <div class="modal-form">
+                    <div class="form-group">
+                        <label>Название типа:</label>
+                        <input type="text" id="typeName" class="input-field" value="${type ? escapeHtml(type.name) : ''}" 
+                            placeholder="Например: Салаты, Горячее, Напитки">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Приоритет (1-10):</label>
+                            <input type="number" id="typePriority" class="input-field" min="1" max="10" value="${type ? type.priority : 5}">
+                        </div>
+                        <div class="form-group color-picker-group">
+                            <label>Цвет:</label>
+                            <input type="color" id="typeColor" value="${type ? type.color : '#e85d6c'}">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Норма кг на человека:</label>
+                        <input type="number" id="typeNormKg" class="input-field" step="0.01" min="0" 
+                            value="${type ? type.normKg || '' : ''}" placeholder="Например: 0.3">
+                    </div>
+                    ${participantsHtml}
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-primary" onclick="saveType('${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+                    </div>
+                </div>
+            `);
+
+            if (state.participants.length > 0) {
+                const forAllCheckbox = document.getElementById('typeForAll');
+                const participantCheckboxes = document.querySelectorAll('.type-participant');
+                
+                forAllCheckbox.addEventListener('change', function() {
+                    participantCheckboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                        cb.disabled = this.checked;
+                    });
+                });
+                
+                if (forAllCheckbox.checked) {
+                    participantCheckboxes.forEach(cb => cb.disabled = true);
+                }
+            }
+
+            document.getElementById('typeName').focus();
+        }
+
+        function saveType(editId) {
+            const name = document.getElementById('typeName').value.trim();
+            const priority = parseInt(document.getElementById('typePriority').value) || 5;
+            const color = document.getElementById('typeColor').value;
+            const normKg = parseFloat(document.getElementById('typeNormKg').value) || 0;
+
+            if (!name) {
+                showToast('Введите название типа', 'warning');
+                return;
+            }
+
+            let forAll = true;
+            let participants = [];
+            let personCount = state.participantCount;
+
+            if (state.participants.length > 0) {
+                forAll = document.getElementById('typeForAll').checked;
+                if (!forAll) {
+                    participants = Array.from(document.querySelectorAll('.type-participant:checked')).map(cb => cb.value);
+                }
+            } else {
+                personCount = parseInt(document.getElementById('typePersonCount').value) || 1;
+            }
+
+            if (editId) {
+                const index = state.types.findIndex(t => t.id === editId);
+                if (index !== -1) {
+                    state.types[index] = { ...state.types[index], name, priority, color, normKg, forAll, participants, personCount };
+                }
+            } else {
+                state.types.push({
+                    id: 'type_' + Date.now(),
+                    name, priority, color, normKg, forAll, participants, personCount
+                });
+            }
+
+            state.types.sort((a, b) => a.priority - b.priority);
+            saveSession();
+            closeModal();
+            render();
+            showToast(editId ? 'Тип обновлен' : 'Тип добавлен', 'success');
+        }
+
+        function deleteType(typeId) {
+            if (!confirm('Удалить тип со всеми блюдами и ингредиентами?')) return;
+
+            const dishIds = state.dishes.filter(d => d.typeId === typeId).map(d => d.id);
+            state.ingredients = state.ingredients.filter(i => !dishIds.includes(i.dishId) && i.typeId !== typeId);
+            state.dishes = state.dishes.filter(d => d.typeId !== typeId);
+            state.types = state.types.filter(t => t.id !== typeId);
+
+            dishIds.forEach(id => {
+                delete state.norms[id];
+                delete state.purchased[id];
+            });
+
+            saveSession();
+            render();
+            showToast('Тип удален', 'success');
+        }
+
+        // ============================================
+        // DISH FUNCTIONS
+        // ============================================
+        function showDishModal(editId = null, presetTypeId = null) {
+            const dish = editId ? state.dishes.find(d => d.id === editId) : null;
+            const isEdit = !!dish;
+
+            const typesOptions = state.types.map(t => 
+                `<option value="${t.id}" ${dish && dish.typeId === t.id ? 'selected' : presetTypeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+            ).join('');
+
+            const participantsHtml = state.participants.length > 0 ? `
+                <div class="form-group">
+                    <label>Для кого:</label>
+                    <div class="participants-checkboxes">
+                        <label class="participant-checkbox">
+                            <input type="checkbox" id="dishForAll" ${!dish || dish.forAll ? 'checked' : ''}>
+                            Для всех
+                        </label>
+                        ${state.participants.map(p => `
+                            <label class="participant-checkbox">
+                                <input type="checkbox" class="dish-participant" value="${escapeHtml(p)}"
+                                    ${dish && dish.participants && dish.participants.includes(p) ? 'checked' : ''}>
+                                ${escapeHtml(p)}
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : `
+                <div class="form-group">
+                    <label>Количество человек для расчета:</label>
+                    <input type="number" id="dishPersonCount" class="input-field" min="1" 
+                        value="${dish ? dish.personCount || state.participantCount || 1 : state.participantCount || 1}">
+                </div>
+            `;
+
+            showModal(`
+                <h3>${isEdit ? 'Редактирование блюда' : 'Добавление блюда или напитка'}</h3>
+                <div class="modal-form">
+                    <div class="form-group">
+                        <label>Название:</label>
+                        <input type="text" id="dishName" class="input-field" value="${dish ? escapeHtml(dish.name) : ''}" 
+                            placeholder="Например: Оливье, Шашлык">
+                    </div>
+                    <div class="form-group">
+                        <label>Тип:</label>
+                        <select id="dishType" class="input-field">
+                            <option value="">-- Без типа --</option>
+                            ${typesOptions}
+                        </select>
+                    </div>
+                    ${participantsHtml}
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-primary" onclick="saveDish('${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+                    </div>
+                </div>
+            `);
+
+            if (state.participants.length > 0) {
+                const forAllCheckbox = document.getElementById('dishForAll');
+                const participantCheckboxes = document.querySelectorAll('.dish-participant');
+                
+                forAllCheckbox.addEventListener('change', function() {
+                    participantCheckboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                        cb.disabled = this.checked;
+                    });
+                });
+                
+                if (forAllCheckbox.checked) {
+                    participantCheckboxes.forEach(cb => cb.disabled = true);
+                }
+            }
+
+            document.getElementById('dishName').focus();
+        }
+
+        function saveDish(editId) {
+            const name = document.getElementById('dishName').value.trim();
+            const typeId = document.getElementById('dishType').value;
+
+            if (!name) {
+                showToast('Введите название блюда', 'warning');
+                return;
+            }
+
+            let forAll = true;
+            let participants = [];
+            let personCount = state.participantCount;
+
+            if (state.participants.length > 0) {
+                forAll = document.getElementById('dishForAll').checked;
+                if (!forAll) {
+                    participants = Array.from(document.querySelectorAll('.dish-participant:checked')).map(cb => cb.value);
+                }
+            } else {
+                personCount = parseInt(document.getElementById('dishPersonCount').value) || 1;
+            }
+
+            if (editId) {
+                const index = state.dishes.findIndex(d => d.id === editId);
+                if (index !== -1) {
+                    state.dishes[index] = { ...state.dishes[index], name, typeId, forAll, participants, personCount };
+                }
+            } else {
+                const newDish = {
+                    id: 'dish_' + Date.now(),
+                    name, typeId, forAll, participants, personCount,
+                    order: state.dishes.length
+                };
+                state.dishes.push(newDish);
+
+                if (state.participants.length > 0) {
+                    state.norms[newDish.id] = {};
+                    state.participants.forEach(p => {
+                        state.norms[newDish.id][p] = 2;
+                    });
+                }
+            }
+
+            saveSession();
+            closeModal();
+            render();
+            showToast(editId ? 'Блюдо обновлено' : 'Блюдо добавлено', 'success');
+        }
+
+        function deleteDish(dishId) {
+            if (!confirm('Удалить блюдо со всеми ингредиентами?')) return;
+
+            state.ingredients = state.ingredients.filter(i => i.dishId !== dishId);
+            state.dishes = state.dishes.filter(d => d.id !== dishId);
+            delete state.norms[dishId];
+
+            saveSession();
+            render();
+            showToast('Блюдо удалено', 'success');
+        }
+
+        // ============================================
+        // INGREDIENT FUNCTIONS
+        // ============================================
+        function showIngredientModal(parentType, parentId, editId = null) {
+            const ingredient = editId ? state.ingredients.find(i => i.id === editId) : null;
+            const isEdit = !!ingredient;
+
+            showModal(`
+                <h3>${isEdit ? 'Редактирование ингредиента' : 'Добавление ингредиента'}</h3>
+                <div class="modal-form">
+                    <div class="form-group">
+                        <label>Название:</label>
+                        <input type="text" id="ingredientName" class="input-field" 
+                            value="${ingredient ? escapeHtml(ingredient.name) : ''}" 
+                            placeholder="Например: Картофель, Майонез">
+                    </div>
+                    <div class="form-group">
+                        <label>Магазин:</label>
+                        <input type="text" id="ingredientShop" class="input-field" 
+                            value="${ingredient ? escapeHtml(ingredient.shop || '') : ''}" 
+                            placeholder="Например: Пятёрочка, Магнит">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Количество:</label>
+                            <input type="number" id="ingredientQuantity" class="input-field" step="0.01" min="0" 
+                                value="${ingredient ? ingredient.quantity : ''}" placeholder="1.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Ед. измерения:</label>
+                            <select id="ingredientUnit" class="input-field">
+                                <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
+                                <option value="г" ${ingredient && ingredient.unit === 'г' ? 'selected' : ''}>грамм</option>
+                                <option value="л" ${ingredient && ingredient.unit === 'л' ? 'selected' : ''}>литр</option>
+                                <option value="мл" ${ingredient && ingredient.unit === 'мл' ? 'selected' : ''}>миллилитр</option>
+                                <option value="шт" ${ingredient && ingredient.unit === 'шт' ? 'selected' : ''}>штука</option>
+                                <option value="уп" ${ingredient && ingredient.unit === 'уп' ? 'selected' : ''}>упаковка</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Цена за единицу (руб.):</label>
+                        <input type="number" id="ingredientPrice" class="input-field" step="0.01" min="0" 
+                            value="${ingredient ? ingredient.price : ''}" placeholder="100.00">
+                    </div>
+                    <div class="form-group" style="background: var(--secondary); padding: 12px; border-radius: var(--radius);">
+                        <label style="font-weight: 600;">Итого: <span id="ingredientTotal" style="color: var(--primary); font-size: 1.2rem;">0.00</span> руб.</label>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-primary" onclick="saveIngredient('${parentType}', '${parentId}', '${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+                    </div>
+                </div>
+            `);
+
+            const updateTotal = () => {
+                const qty = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
+                const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
+                document.getElementById('ingredientTotal').textContent = (qty * price).toFixed(2);
+            };
+
+            document.getElementById('ingredientQuantity').addEventListener('input', updateTotal);
+            document.getElementById('ingredientPrice').addEventListener('input', updateTotal);
+            updateTotal();
+
+            document.getElementById('ingredientName').focus();
+        }
+
+        function saveIngredient(parentType, parentId, editId) {
+            const name = document.getElementById('ingredientName').value.trim();
+            const shop = document.getElementById('ingredientShop').value.trim();
+            const quantity = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
+            const unit = document.getElementById('ingredientUnit').value;
+            const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
+
+            if (!name) {
+                showToast('Введите название ингредиента', 'warning');
+                return;
+            }
+
+            if (quantity <= 0) {
+                showToast('Укажите количество', 'warning');
+                return;
+            }
+
+            if (editId) {
+                const index = state.ingredients.findIndex(i => i.id === editId);
+                if (index !== -1) {
+                    state.ingredients[index] = { ...state.ingredients[index], name, shop, quantity, unit, price };
+                }
+            } else {
+                state.ingredients.push({
+                    id: 'ing_' + Date.now(),
+                    name, shop, quantity, unit, price,
+                    typeId: parentType === 'type' ? parentId : null,
+                    dishId: parentType === 'dish' ? parentId : null,
+                    order: state.ingredients.length
+                });
+            }
+
+            saveSession();
+            closeModal();
+            render();
+            showToast(editId ? 'Ингредиент обновлен' : 'Ингредиент добавлен', 'success');
+        }
+
+        function deleteIngredient(ingredientId) {
+            state.ingredients = state.ingredients.filter(i => i.id !== ingredientId);
+            saveSession();
+            render();
+        }
+
+        // ============================================
+        // RENDER FUNCTIONS
+        // ============================================
+        function render() {
+            renderMainField();
+            renderPerPerson();
+            renderNormsTable();
+            renderShoppingList();
+            renderSummary();
+            updateSessionCode();
+        }
+
+        function renderMainField() {
+            const main = document.getElementById('mainField');
+            let html = '';
+
+            state.types.forEach((type, index) => {
+                html += `<div class="type-container fade-in" style="animation-delay: ${index * 0.05}s">`;
+                html += renderType(type);
+                html += `</div>`;
+            });
+
+            const dishesWithoutType = state.dishes.filter(d => !d.typeId);
+            dishesWithoutType.forEach((dish, index) => {
+                html += `<div class="dish-container fade-in" style="animation-delay: ${(state.types.length + index) * 0.05}s">`;
+                html += renderDish(dish);
+                html += `</div>`;
+            });
+
+            main.innerHTML = html || '<p class="empty-message">Начните с добавления типа блюд или отдельного блюда</p>';
+
+            initDragAndDrop();
+        }
+
+        function renderType(type) {
+            const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
+            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+            const dishCount = typeDishes.length;
+
+            let html = `
+                <div class="type-row" style="background: linear-gradient(135deg, ${type.color} 0%, ${adjustColor(type.color, -20)} 100%)" 
+                    data-type-id="${type.id}" onclick="showTypeModal('${type.id}')">
+                    <span class="type-name">
+                        ${escapeHtml(type.name)}
+                        <span class="type-badge">${dishCount} ${pluralize(dishCount, 'блюдо', 'блюда', 'блюд')}</span>
+                        ${type.normKg ? `<span class="type-badge">${type.normKg} кг/чел</span>` : ''}
+                    </span>
+                    <div class="type-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-add btn-small" onclick="showIngredientModal('type', '${type.id}')">+ Ингредиент</button>
+                        <button class="btn btn-delete btn-small" onclick="deleteType('${type.id}')">Удалить</button>
+                    </div>
+                </div>
+            `;
+
+            typeIngredients.forEach(ing => {
+                html += renderIngredient(ing);
+            });
+
+            if (typeIngredients.length > 0) {
+                const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+                const perPerson = calculatePerPerson(total, type);
+                html += `
+                    <div class="total-row">
+                        <span>Итого за тип:</span>
+                        <span>${formatMoney(total)}</span>
+                    </div>
+                    <div class="per-each-row">
+                        <span>С каждого:</span>
+                        <span>${formatMoney(perPerson)}</span>
+                    </div>
+                `;
+            }
+
+            typeDishes.forEach(dish => {
+                html += renderDish(dish);
+            });
+
+            return html;
+        }
+
+        function renderDish(dish) {
+            const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
+
+            let html = `
+                <div class="dish-row" draggable="true" data-dish-id="${dish.id}" onclick="showDishModal('${dish.id}')">
+                    <span class="dish-name">${escapeHtml(dish.name)}</span>
+                    <div class="dish-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')" title="Участники">
+                            ${getParticipantsCount(dish)} чел.
+                        </button>
+                        <button class="btn btn-add btn-small" onclick="showIngredientModal('dish', '${dish.id}')">+ Ингредиент</button>
+                        <button class="btn btn-delete btn-small" onclick="deleteDish('${dish.id}')">Удалить</button>
+                    </div>
+                </div>
+            `;
+
+            dishIngredients.forEach(ing => {
+                html += renderIngredient(ing);
+            });
+
+            if (dishIngredients.length > 0) {
+                const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+                const perPerson = calculatePerPersonForDish(dish, total);
+                html += `
+                    <div class="total-row">
+                        <span>Итого за блюдо:</span>
+                        <span>${formatMoney(total)}</span>
+                    </div>
+                    <div class="per-each-row">
+                        <span>С каждого:</span>
+                        <span>${formatMoney(perPerson)}</span>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function renderIngredient(ing) {
+            const total = ing.quantity * ing.price;
+            return `
+                <div class="ingredient-row" draggable="true" data-ingredient-id="${ing.id}" 
+                    onclick="showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')">
+                    <span class="ingredient-name">${escapeHtml(ing.name)}</span>
+                    <span class="ingredient-quantity">${ing.quantity} ${ing.unit}</span>
+                    <span class="ingredient-price">${formatMoney(ing.price)}</span>
+                    <span class="ingredient-price">${formatMoney(total)}</span>
+                    <span class="ingredient-shop">${escapeHtml(ing.shop || '—')}</span>
+                    <button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">×</button>
+                </div>
+            `;
+        }
+
+        function getParticipantsCount(dish) {
+            if (state.participants.length > 0) {
+                if (dish.forAll) return state.participants.length;
+                return dish.participants ? dish.participants.length : 0;
+            }
+            return dish.personCount || state.participantCount || 0;
+        }
+
+        function showParticipantsInfo(dishId) {
+            const dish = state.dishes.find(d => d.id === dishId);
+            if (!dish) return;
+
+            let info = '';
+            if (state.participants.length > 0) {
+                if (dish.forAll) {
+                    info = 'Для всех участников:\n' + state.participants.join(', ');
+                } else {
+                    info = 'Для: ' + (dish.participants && dish.participants.length > 0 ? dish.participants.join(', ') : 'никого не выбрано');
+                }
+            } else {
+                info = 'Количество человек: ' + (dish.personCount || state.participantCount || 'не указано');
+            }
+
+            alert(info);
+        }
+
+        // ============================================
+        // CALCULATION FUNCTIONS
+        // ============================================
+        function getNormValue(dishId, participant) {
+            if (state.norms[dishId] && state.norms[dishId][participant] !== undefined) {
+                return state.norms[dishId][participant];
+            }
+            return 2;
+        }
+
+        function calculatePerPerson(total, entity) {
+            if (state.participants.length > 0) {
+                if (entity.forAll) {
+                    return total / state.participants.length;
+                                }
+                return entity.participants && entity.participants.length > 0 ? total / entity.participants.length : total;
+            }
+            return entity.personCount > 0 ? total / entity.personCount : total;
+        }
+
+        function calculatePerPersonForDish(dish, total) {
+            if (state.participants.length > 0) {
+                let totalMultiplier = 0;
+
+                state.participants.forEach(p => {
+                    const normValue = getNormValue(dish.id, p);
+                    if (normValue === 2) {
+                        totalMultiplier += 1;
+                    } else if (normValue === 1) {
+                        totalMultiplier += 0.5;
+                    }
+                });
+
+                if (totalMultiplier === 0) return 0;
+                return total / totalMultiplier;
+            }
+
+            return dish.personCount > 0 ? total / dish.personCount : total;
+        }
+
+        function calculatePersonDishKg(dish, participant, type) {
+            if (!type || !type.normKg) {
+                return { kg: 0, percent: 0 };
+            }
+
+            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+            const dishNormValue = getNormValue(dish.id, participant);
+
+            if (dishNormValue === 0) {
+                return { kg: 0, percent: 0 };
+            }
+
+            let totalWeight = 0;
+            const dishWeights = {};
+
+            typeDishes.forEach(d => {
+                const normValue = getNormValue(d.id, participant);
+                const weight = normValue === 2 ? 2 : normValue === 1 ? 1 : 0;
+                dishWeights[d.id] = weight;
+                totalWeight += weight;
+            });
+
+            if (totalWeight === 0) {
+                return { kg: 0, percent: 0 };
+            }
+
+            const calories = state.participantCalories[participant] || 2000;
+            const personalMultiplier = calories / 2000;
+            const personTypeNorm = type.normKg * personalMultiplier;
+            const dishWeight = dishWeights[dish.id];
+            const percent = (dishWeight / totalWeight) * 100;
+            const kg = personTypeNorm * (dishWeight / totalWeight);
+
+            return { kg, percent };
+        }
+
+        function calculatePersonTypeKg(type, participant) {
+            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+            let total = 0;
+
+            typeDishes.forEach(dish => {
+                const kgData = calculatePersonDishKg(dish, participant, type);
+                total += kgData.kg;
+            });
+
+            return total;
+        }
+
+        function calculateTypeTotalKg(type) {
+            let total = 0;
+
+            state.participants.forEach(p => {
+                total += calculatePersonTypeKg(type, p);
+            });
+
+            return total;
+        }
+
+        function calculateDishTotalKg(dish, type) {
+            let total = 0;
+
+            state.participants.forEach(p => {
+                const kgData = calculatePersonDishKg(dish, p, type);
+                total += kgData.kg;
+            });
+
+            return total;
+        }
+
+        function calculatePerParticipant() {
+            const perParticipant = {};
+            state.participants.forEach(p => perParticipant[p] = 0);
+
+            state.dishes.forEach(dish => {
+                const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
+                const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+
+                if (total > 0) {
+                    let participants = dish.forAll ? state.participants : (dish.participants || []);
+                    let participantMultipliers = {};
+                    let totalMultiplier = 0;
+
+                    participants.forEach(p => {
+                        const normValue = getNormValue(dish.id, p);
+                        if (normValue === 2) {
+                            participantMultipliers[p] = 1;
+                            totalMultiplier += 1;
+                        } else if (normValue === 1) {
+                            participantMultipliers[p] = 0.5;
+                            totalMultiplier += 0.5;
+                        }
+                    });
+
+                    if (totalMultiplier > 0) {
+                        const perUnit = total / totalMultiplier;
+                        Object.keys(participantMultipliers).forEach(p => {
+                            if (perParticipant[p] !== undefined) {
+                                perParticipant[p] += perUnit * participantMultipliers[p];
+                            }
+                        });
+                    }
+                }
+            });
+
+            state.types.forEach(type => {
+                const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
+                const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+
+                if (total > 0) {
+                    let participants = type.forAll ? state.participants : (type.participants || []);
+                    if (participants.length > 0) {
+                        const perPerson = total / participants.length;
+                        participants.forEach(p => {
+                            if (perParticipant[p] !== undefined) {
+                                perParticipant[p] += perPerson;
+                            }
+                        });
+                    }
+                }
+            });
+
+            return perParticipant;
+        }
+
+        // ============================================
+        // PER PERSON SECTION
+        // ============================================
+        function renderPerPerson() {
+            const section = document.getElementById('perPersonSection');
+            const list = document.getElementById('perPersonList');
+
+            if (state.participants.length === 0 && state.participantCount === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+
+            if (state.participants.length > 0) {
+                const perParticipant = calculatePerParticipant();
+
+                list.innerHTML = '<div class="per-person-list">' +
+                    Object.entries(perParticipant).map(([name, amount]) => `
+                        <div class="per-person-item">
+                            <span class="per-person-name">${escapeHtml(name)}</span>
+                            <span class="per-person-amount">${formatMoney(amount)}</span>
+                        </div>
+                    `).join('') +
+                '</div>';
+            } else {
+                const total = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+                const perPerson = state.participantCount > 0 ? total / state.participantCount : total;
+                list.innerHTML = `
+                    <div class="per-person-item">
+                        <span class="per-person-name">С каждого участника</span>
+                        <span class="per-person-amount">${formatMoney(perPerson)}</span>
+                    </div>
+                `;
+            }
+        }
+
+        // ============================================
+        // NORMS TABLE
+        // ============================================
+        function renderNormsTable() {
+            const section = document.getElementById('normsSection');
+            const container = document.getElementById('normsTable');
+
+            if (state.participants.length === 0 || state.dishes.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            section.classList.remove('hidden');
+
+            let html = '<table class="norms-table"><thead><tr><th>Блюдо</th>';
+
+            state.participants.forEach(p => {
+                const calories = state.participantCalories[p] || 2000;
+                html += `
+                    <th class="participant-header">
+                        <div>${escapeHtml(p)}</div>
+                        <div class="calorie-input">
+                            <input type="number" value="${calories}" min="1000" max="5000" step="100" 
+                                onchange="updateCalories('${escapeHtml(p)}', this.value)" 
+                                title="Норма калорий">
+                            <div class="norm-kg">${(calories * 0.6 / 1000).toFixed(2)} кг/день</div>
+                        </div>
+                    </th>
+                `;
+            });
+
+            html += '<th>Итого кг</th></tr></thead><tbody>';
+
+            state.types.forEach(type => {
+                const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+                if (typeDishes.length > 0) {
+                    html += `
+                        <tr class="type-header-row" style="background: ${type.color}22;">
+                            <td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">
+                                ${escapeHtml(type.name)} 
+                                <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">
+                                    (норма: ${type.normKg || 0} кг/чел.)
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+
+                    typeDishes.forEach(dish => {
+                        html += renderNormRow(dish, type);
+                    });
+
+                    html += renderTypeSubtotalRow(type);
+                }
+            });
+
+            const dishesWithoutType = state.dishes.filter(d => !d.typeId);
+            if (dishesWithoutType.length > 0) {
+                html += `
+                    <tr class="type-header-row">
+                        <td colspan="${state.participants.length + 2}" style="font-weight: 600; text-align: left; padding: 12px;">
+                            Без категории
+                        </td>
+                    </tr>
+                `;
+                dishesWithoutType.forEach(dish => {
+                    html += renderNormRow(dish, null);
+                });
+            }
+
+            html += '</tbody></table>';
+            html += renderTypeSummary();
+
+            container.innerHTML = html;
+        }
+
+        function renderNormRow(dish, type) {
+            const bgColor = type ? type.color + '08' : 'transparent';
+            const borderColor = type ? type.color : 'var(--border)';
+
+            let html = `<tr style="background: ${bgColor}; border-left: 3px solid ${borderColor};">
+                <td style="text-align: left; font-weight: 500; padding-left: 24px;">
+                    ${escapeHtml(dish.name)}
+                </td>`;
+
+            let totalKg = 0;
+
+            state.participants.forEach(p => {
+                const normValue = getNormValue(dish.id, p);
+                const kgData = calculatePersonDishKg(dish, p, type);
+
+                totalKg += kgData.kg;
+
+                const selectStyle = getSelectStyle(normValue);
+                const percentText = kgData.percent > 0 ? `${Math.round(kgData.percent)}%` : '—';
+                const percentColor = kgData.percent > 50 ? (type?.color || 'var(--success)') : 'var(--text-secondary)';
+
+                html += `
+                    <td style="vertical-align: top;">
+                        <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" style="${selectStyle}">
+                            <option value="0" ${normValue === 0 ? 'selected' : ''}>Не буду</option>
+                            <option value="1" ${normValue === 1 ? 'selected' : ''}>Возможно</option>
+                            <option value="2" ${normValue === 2 ? 'selected' : ''}>Буду</option>
+                        </select>
+                        <div class="norm-details" style="margin-top: 4px; font-size: 0.75rem;">
+                            <div style="color: var(--text-primary); font-weight: 500;">
+                                ${kgData.kg.toFixed(3)} кг
+                            </div>
+                            <div style="color: ${percentColor}; font-size: 0.7rem;">
+                                ${percentText}
+                            </div>
+                            ${renderMiniBar(kgData.percent, type?.color || '#888')}
+                        </div>
+                    </td>
+                `;
+            });
+
+            const dishTotalKg = calculateDishTotalKg(dish, type);
+
+            html += `
+                <td style="vertical-align: top;">
+                    <strong style="color: var(--primary); font-size: 1rem;">${dishTotalKg.toFixed(2)}</strong>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">кг на всех</div>
+                </td>
+            </tr>`;
+
+            return html;
+        }
+
+        function renderMiniBar(percent, color) {
+            if (percent <= 0) return '';
+
+            return `
+                <div style="
+                    width: 100%;
+                    height: 3px;
+                    background: #eee;
+                    border-radius: 2px;
+                    margin-top: 3px;
+                    overflow: hidden;
+                ">
+                    <div style="
+                        width: ${Math.min(percent, 100)}%;
+                        height: 100%;
+                        background: ${color};
+                        border-radius: 2px;
+                        transition: width 0.3s ease;
+                    "></div>
+                </div>
+            `;
+        }
+
+        function renderTypeSubtotalRow(type) {
+            let html = `<tr style="background: ${type.color}15; font-weight: 500;">
+                <td style="text-align: right; padding-right: 16px;">Итого ${escapeHtml(type.name)}:</td>`;
+
+            let grandTotal = 0;
+
+            state.participants.forEach(p => {
+                const personTypeKg = calculatePersonTypeKg(type, p);
+                grandTotal += personTypeKg;
+
+                html += `<td style="color: ${type.color};">${personTypeKg.toFixed(3)} кг</td>`;
+            });
+
+            html += `<td><strong style="color: ${type.color};">${grandTotal.toFixed(3)} кг</strong></td></tr>`;
+            return html;
+        }
+
+        function renderTypeSummary() {
+            if (state.types.length === 0) return '';
+
+            let html = '<div style="margin-top: 20px;"><h4 style="margin-bottom: 12px;">Сводка по типам</h4><div class="per-person-list">';
+
+            state.types.forEach(type => {
+                const typeTotal = calculateTypeTotalKg(type);
+                const expectedTotal = (type.normKg || 0) * state.participants.length;
+                const diff = typeTotal - expectedTotal;
+                const diffText = expectedTotal > 0 ?
+                    `(${diff >= 0 ? '+' : ''}${diff.toFixed(2)} от нормы)` : '';
+                const diffColor = diff >= 0 ? 'var(--success)' : 'var(--warning)';
+
+                html += `
+                    <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color};">
+                        <div>
+                            <span class="per-person-name">${escapeHtml(type.name)}</span>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                Норма: ${type.normKg || 0} кг × ${state.participants.length} чел. = ${expectedTotal.toFixed(2)} кг
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="per-person-amount" style="color: ${type.color};">${typeTotal.toFixed(2)} кг</span>
+                            <div style="font-size: 0.75rem; color: ${diffColor};">
+                                ${diffText}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+            return html;
+        }
+
+        function getSelectStyle(normValue) {
+            if (normValue === 0) return 'color: var(--danger); background: #fee;';
+            if (normValue === 1) return 'color: var(--warning); background: #fffbe6;';
+            return 'color: var(--success); background: #f0fff0;';
+        }
+
+        function updateNorm(dishId, participant, value) {
+            if (!state.norms[dishId]) {
+                state.norms[dishId] = {};
+            }
+            state.norms[dishId][participant] = parseInt(value);
+            saveSession();
+            render();
+        }
+
+        function updateCalories(participant, value) {
+            state.participantCalories[participant] = parseInt(value) || 2000;
+            saveSession();
+            render();
+        }
+
+        // ============================================
+        // SHOPPING LIST
+        // ============================================
+        function renderShoppingList() {
+            const container = document.getElementById('shoppingList');
+
+            if (state.ingredients.length === 0) {
+                container.innerHTML = '<p class="empty-message">Добавьте ингредиенты для формирования списка покупок</p>';
+                document.getElementById('purchasedCount').textContent = '0';
+                document.getElementById('totalCount').textContent = '0';
+                document.getElementById('progressFill').style.width = '0%';
+                return;
+            }
+
+            const grouped = {};
+            state.ingredients.forEach(ing => {
+                const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
+                if (!grouped[key]) {
+                    grouped[key] = {
+                        id: key,
+                        name: ing.name,
+                        shop: ing.shop,
+                        unit: ing.unit,
+                        quantity: 0,
+                        totalPrice: 0,
+                        sources: []
+                    };
+                }
+                grouped[key].quantity += ing.quantity;
+                grouped[key].totalPrice += ing.quantity * ing.price;
+
+                if (ing.dishId) {
+                    const dish = state.dishes.find(d => d.id === ing.dishId);
+                    if (dish) grouped[key].sources.push(dish.name);
+                }
+                if (ing.typeId) {
+                    const type = state.types.find(t => t.id === ing.typeId);
+                    if (type) grouped[key].sources.push(type.name);
+                }
+            });
+
+            const items = Object.values(grouped);
+            const purchasedCount = items.filter(item => state.purchased[item.id]).length;
+            const totalCount = items.length;
+
+            document.getElementById('purchasedCount').textContent = purchasedCount;
+            document.getElementById('totalCount').textContent = totalCount;
+            document.getElementById('progressFill').style.width = totalCount > 0 ? `${(purchasedCount / totalCount) * 100}%` : '0%';
+
+            let html = `
+                <div class="shopping-item shopping-header">
+                    <span></span>
+                    <span>Название</span>
+                    <span>Количество</span>
+                    <span>Магазин</span>
+                    <span>Стоимость</span>
+                </div>
+            `;
+
+            items.sort((a, b) => {
+                const aPurchased = state.purchased[a.id] ? 1 : 0;
+                const bPurchased = state.purchased[b.id] ? 1 : 0;
+                if (aPurchased !== bPurchased) return aPurchased - bPurchased;
+                return a.name.localeCompare(b.name, 'ru');
+            });
+
+            items.forEach((item, index) => {
+                const isPurchased = state.purchased[item.id];
+                const sourcesText = [...new Set(item.sources)].join(', ');
+                const escapedId = item.id.replace(/'/g, "\\'");
+
+                html += `
+                    <div class="shopping-item ${isPurchased ? 'purchased' : ''}" style="animation-delay: ${index * 0.02}s">
+                        <input type="checkbox" class="shopping-checkbox" 
+                            ${isPurchased ? 'checked' : ''} 
+                            onchange="togglePurchased('${escapedId}')"
+                            title="Отметить как купленное">
+                        <div class="shopping-item-name">
+                            ${escapeHtml(item.name)}
+                            <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: normal;">
+                                ${escapeHtml(sourcesText)}
+                            </div>
+                        </div>
+                        <span class="shopping-item-quantity">${formatQuantity(item.quantity, item.unit)}</span>
+                        <span class="shopping-item-shop">${escapeHtml(item.shop || '—')}</span>
+                        <span class="shopping-item-price">${formatMoney(item.totalPrice)}</span>
+                    </div>
+                `;
+            });
+
+            const grandTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+            const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
+            const remainingTotal = grandTotal - purchasedTotal;
+
+            html += `
+                <div class="shopping-item shopping-total">
+                    <span></span>
+                    <span>ИТОГО</span>
+                    <span>${totalCount} ${pluralize(totalCount, 'позиция', 'позиции', 'позиций')}</span>
+                    <span style="color: rgba(255,255,255,0.8);">Осталось: ${formatMoney(remainingTotal)}</span>
+                    <span class="shopping-item-price">${formatMoney(grandTotal)}</span>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function togglePurchased(itemId) {
+            state.purchased[itemId] = !state.purchased[itemId];
+            saveSession();
+            renderShoppingList();
+            renderSummary();
+            showToast(state.purchased[itemId] ? 'Отмечено как купленное' : 'Снята отметка', 'success');
+        }
+
+        function formatQuantity(quantity, unit) {
+            if (unit === 'шт' || unit === 'уп') {
+                return `${Math.ceil(quantity)} ${unit}`;
+            }
+
+            if (quantity >= 1) {
+                return `${quantity.toFixed(2)} ${unit}`;
+            }
+
+            return `${quantity.toFixed(3)} ${unit}`;
+        }
+
+        // ============================================
+        // SUMMARY
+        // ============================================
+        function renderSummary() {
+            const container = document.getElementById('summaryContent');
+
+            const totalCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            const totalItems = state.ingredients.length;
+            const totalDishes = state.dishes.length;
+            const participantsCount = state.participants.length || state.participantCount || 1;
+            const perPerson = totalCost / participantsCount;
+
+            const grouped = {};
+            state.ingredients.forEach(ing => {
+                const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
+                if (!grouped[key]) grouped[key] = { id: key, totalPrice: 0 };
+                grouped[key].totalPrice += ing.quantity * ing.price;
+            });
+
+            const items = Object.values(grouped);
+            const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
+
+            container.innerHTML = `
+                <div class="summary-grid">
+                    <div class="summary-card highlight">
+                        <div class="summary-value">${formatMoney(totalCost)}</div>
+                        <div class="summary-label">Общая стоимость</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${formatMoney(perPerson)}</div>
+                        <div class="summary-label">С каждого (~${participantsCount} чел.)</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${totalDishes}</div>
+                        <div class="summary-label">${pluralize(totalDishes, 'блюдо', 'блюда', 'блюд')}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-value">${totalItems}</div>
+                        <div class="summary-label">${pluralize(totalItems, 'ингредиент', 'ингредиента', 'ингредиентов')}</div>
+                    </div>
+                    <div class="summary-card" style="border: 2px solid var(--success);">
+                        <div class="summary-value" style="color: var(--success);">${formatMoney(purchasedTotal)}</div>
+                        <div class="summary-label">Уже куплено</div>
+                    </div>
+                    <div class="summary-card" style="border: 2px solid var(--warning);">
+                        <div class="summary-value" style="color: var(--warning);">${formatMoney(totalCost - purchasedTotal)}</div>
+                        <div class="summary-label">Осталось купить</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============================================
+        // DRAG & DROP
+        // ============================================
+        let draggedElement = null;
+
+        function initDragAndDrop() {
+            document.querySelectorAll('.dish-row').forEach(dish => {
+                dish.addEventListener('dragstart', handleDragStart);
+                dish.addEventListener('dragend', handleDragEnd);
+                dish.addEventListener('dragover', handleDragOver);
+                dish.addEventListener('dragleave', handleDragLeave);
+                dish.addEventListener('drop', handleDishDrop);
+            });
+
+            document.querySelectorAll('.ingredient-row').forEach(ing => {
+                ing.addEventListener('dragstart', handleDragStart);
+                ing.addEventListener('dragend', handleDragEnd);
+                ing.addEventListener('dragover', handleDragOver);
+                ing.addEventListener('dragleave', handleDragLeave);
+                ing.addEventListener('drop', handleIngredientDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDishDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            if (!draggedElement || draggedElement === this) return;
+
+            const draggedId = draggedElement.dataset.dishId;
+            const targetId = this.dataset.dishId;
+
+            if (draggedId && targetId) {
+                const draggedIndex = state.dishes.findIndex(d => d.id === draggedId);
+                const targetIndex = state.dishes.findIndex(d => d.id === targetId);
+
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    const targetDish = state.dishes[targetIndex];
+                    state.dishes[draggedIndex].typeId = targetDish.typeId;
+
+                    const [removed] = state.dishes.splice(draggedIndex, 1);
+                    state.dishes.splice(targetIndex, 0, removed);
+
+                    saveSession();
+                    render();
+                }
+            }
+        }
+
+        function handleIngredientDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            if (!draggedElement || draggedElement === this) return;
+
+            const draggedId = draggedElement.dataset.ingredientId;
+            const targetId = this.dataset.ingredientId;
+
+            if (draggedId && targetId) {
+                const draggedIng = state.ingredients.find(i => i.id === draggedId);
+                const targetIng = state.ingredients.find(i => i.id === targetId);
+
+                if (draggedIng && targetIng &&
+                    draggedIng.dishId === targetIng.dishId &&
+                    draggedIng.typeId === targetIng.typeId) {
+
+                    const draggedIndex = state.ingredients.findIndex(i => i.id === draggedId);
+                    const targetIndex = state.ingredients.findIndex(i => i.id === targetId);
+
+                    const [removed] = state.ingredients.splice(draggedIndex, 1);
+                    state.ingredients.splice(targetIndex, 0, removed);
+
+                    saveSession();
+                    render();
+                }
+            }
+        }
+
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'RUB',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            try {
+                const date = new Date(dateString);
+                const options = {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                };
+                return date.toLocaleDateString('ru-RU', options);
+            } catch (e) {
+                return '';
+            }
+        }
+
+        function pluralize(n, one, few, many) {
+            const mod10 = n % 10;
+            const mod100 = n % 100;
+
+            if (mod100 >= 11 && mod100 <= 19) return many;
+            if (mod10 === 1) return one;
+            if (mod10 >= 2 && mod10 <= 4) return few;
+            return many;
+        }
+
+        function adjustColor(hex, percent) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+            const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+            const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+        }
+
+        function showToast(message, type = 'info') {
+            let container = document.getElementById('toastContainer');
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
