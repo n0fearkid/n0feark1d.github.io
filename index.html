@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Смета застолья</title>
+    <title>Смета застолья от Михаилна Бублека</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -208,6 +208,11 @@
             color: var(--text-primary);
         }
 
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #e09b3d 100%);
+            color: var(--text-primary);
+        }
+
         .participants-section {
             display: flex;
             align-items: center;
@@ -400,7 +405,7 @@
 
         .per-person-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 12px;
         }
 
@@ -409,16 +414,24 @@
             padding: 14px 16px;
             border-radius: var(--radius);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 8px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
             transition: var(--transition);
+            cursor: pointer;
         }
 
         .per-person-item:hover {
             transform: translateY(-2px);
             box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .per-person-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .per-person-name { font-weight: 500; }
@@ -427,6 +440,37 @@
             font-weight: 600;
             color: var(--primary);
             font-size: 1.1rem;
+        }
+
+        .per-person-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .per-person-badge.deduction {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+        }
+
+        .per-person-badge.addition {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+        }
+
+        .per-person-final {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            padding-top: 8px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .per-person-final-amount {
+            font-weight: 600;
+            color: var(--success);
         }
 
         .norms-section { overflow-x: auto; }
@@ -933,6 +977,120 @@
 
         .hidden { display: none !important; }
 
+        /* Стили для модального окна расчёта */
+        .calc-current {
+            background: linear-gradient(135deg, var(--secondary) 0%, #d8d6cf 100%);
+            padding: 16px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .calc-current-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .calc-current-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .calc-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .calc-input-group input {
+            flex: 1;
+        }
+
+        .calc-result {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            padding: 16px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .calc-result-label {
+            font-size: 0.85rem;
+            color: #155724;
+            margin-bottom: 4px;
+        }
+
+        .calc-result-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #155724;
+        }
+
+        .calc-history {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid var(--border);
+        }
+
+        .calc-history h4 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .calc-history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .calc-history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .calc-history-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .calc-history-type {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .calc-history-type.deduction {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .calc-history-type.addition {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .calc-history-amount {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .calc-history-date {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
         @media (max-width: 768px) {
             body { padding: 12px; }
             header { padding: 16px; }
@@ -948,6 +1106,8 @@
             .summary-grid { grid-template-columns: 1fr 1fr; }
             .session-code-actions { flex-direction: column; }
             .session-code-actions .btn { width: 100%; }
+            .calc-input-group { flex-direction: column; }
+            .calc-input-group .btn { width: 100%; }
         }
 
         @media (max-width: 480px) {
@@ -961,7 +1121,7 @@
         <!-- ========== СТРАНИЦА СЕССИЙ ========== -->
         <div id="sessionsPage">
             <div class="card fade-in">
-                <h1>Смета застолья</h1>
+                <h1>Смета застолья от Михаилна Бублека</h1>
                 <p class="subtitle">Планируйте праздники легко</p>
             </div>
 
@@ -992,7 +1152,7 @@
             <header class="fade-in">
                 <div class="header-top">
                     <button class="btn btn-back" onclick="goToSessions()">← Назад</button>
-                    <h1 id="sessionTitle">Смета застолья</h1>
+                    <h1 id="sessionTitle">Смета застолья от Михаилна Бублека</h1>
                 </div>
 
                 <div class="participants-section">
@@ -1011,7 +1171,8 @@
 
             <section id="perPersonSection" class="per-person-section card fade-in hidden">
                 <h3>С каждого участника</h3>
-                <div id="perPersonList"></div>
+                <p class="section-subtitle">Нажмите на участника для расчёта с вычетом или добавлением</p>
+                <div id="perPersonList" style="margin-top: 16px;"></div>
             </section>
 
             <section id="normsSection" class="norms-section card fade-in hidden">
@@ -1111,7 +1272,8 @@
             ingredients: [],
             norms: {},
             participantCalories: {},
-            purchased: {}
+            purchased: {},
+            participantAdjustments: {} // Новое: история корректировок для каждого участника
         };
 
         let allSessions = [];
@@ -1191,7 +1353,8 @@
                     ingredients: [],
                     norms: {},
                     participantCalories: {},
-                    purchased: {}
+                    purchased: {},
+                    participantAdjustments: {}
                 }
             };
 
@@ -1219,6 +1382,7 @@
             state.norms = session.data.norms || {};
             state.participantCalories = session.data.participantCalories || {};
             state.purchased = session.data.purchased || {};
+            state.participantAdjustments = session.data.participantAdjustments || {};
 
             document.getElementById('sessionTitle').textContent = session.name;
             document.getElementById('sessionsPage').classList.add('hidden');
@@ -1404,7 +1568,8 @@
                     ingredients: state.ingredients,
                     norms: state.norms,
                     participantCalories: state.participantCalories,
-                    purchased: state.purchased
+                    purchased: state.purchased,
+                    participantAdjustments: state.participantAdjustments
                 };
                 saveAllSessions();
             }
@@ -1431,6 +1596,9 @@
             state.participants.forEach(p => {
                 if (!state.participantCalories[p]) {
                     state.participantCalories[p] = 2000;
+                }
+                if (!state.participantAdjustments[p]) {
+                    state.participantAdjustments[p] = [];
                 }
             });
 
@@ -1462,6 +1630,156 @@
         function closeModal() {
             document.getElementById('modalOverlay').classList.add('hidden');
             document.body.style.overflow = '';
+        }
+
+        // ============================================
+        // PARTICIPANT CALCULATION MODAL
+        // ============================================
+        function showParticipantCalcModal(participantName) {
+            const perParticipant = calculatePerParticipant();
+            const baseAmount = perParticipant[participantName] || 0;
+            const adjustments = state.participantAdjustments[participantName] || [];
+            
+            // Рассчитываем итоговую сумму с учётом корректировок
+            const totalAdjustment = adjustments.reduce((sum, adj) => {
+                return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+            }, 0);
+            const finalAmount = baseAmount + totalAdjustment;
+
+            const historyHtml = adjustments.length > 0 ? `
+                <div class="calc-history">
+                    <h4>История корректировок</h4>
+                    <div class="calc-history-list">
+                        ${adjustments.map((adj, index) => `
+                            <div class="calc-history-item">
+                                <div class="calc-history-info">
+                                    <span class="calc-history-type ${adj.type}">${adj.type === 'deduction' ? '➖ Вычет' : '➕ Добавление'}</span>
+                                    <span class="calc-history-amount">${formatMoney(adj.amount)}</span>
+                                    <span class="calc-history-date">${formatDateTime(adj.date)}</span>
+                                </div>
+                                <button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
+            showModal(`
+                <h3>Расчёт для ${escapeHtml(participantName)}</h3>
+                <div class="modal-form">
+                    <div class="calc-current">
+                        <div class="calc-current-label">Базовая сумма (с каждого участника)</div>
+                        <div class="calc-current-amount">${formatMoney(baseAmount)}</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Вычесть или добавить (руб.):</label>
+                        <div class="calc-input-group">
+                            <input type="number" id="adjustmentAmount" class="input-field" placeholder="Введите сумму" min="0" step="0.01">
+                            <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">➖ Вычесть</button>
+                            <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">➕ Добавить</button>
+                        </div>
+                    </div>
+
+                    <div class="calc-result">
+                        <div class="calc-result-label">Итого к оплате</div>
+                        <div class="calc-result-amount" id="calcResultAmount">${formatMoney(finalAmount)}</div>
+                    </div>
+
+                    ${historyHtml}
+
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+                    </div>
+                </div>
+            `);
+
+            // Добавляем обработчик для live-обновления результата
+            document.getElementById('adjustmentAmount').addEventListener('input', function() {
+                updateCalcPreview(participantName, baseAmount, adjustments);
+            });
+        }
+
+        function updateCalcPreview(participantName, baseAmount, adjustments) {
+            const inputAmount = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
+            const totalAdjustment = adjustments.reduce((sum, adj) => {
+                return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+            }, 0);
+            const resultElement = document.getElementById('calcResultAmount');
+            if (resultElement) {
+                resultElement.textContent = formatMoney(baseAmount + totalAdjustment);
+            }
+        }
+
+        function addAdjustment(participantName, type) {
+            const amountInput = document.getElementById('adjustmentAmount');
+            const amount = parseFloat(amountInput.value);
+
+            if (!amount || amount <= 0) {
+                showToast('Введите корректную сумму', 'warning');
+                amountInput.focus();
+                return;
+            }
+
+            if (!state.participantAdjustments[participantName]) {
+                state.participantAdjustments[participantName] = [];
+            }
+
+            state.participantAdjustments[participantName].push({
+                type: type,
+                amount: amount,
+                date: new Date().toISOString()
+            });
+
+            saveSession();
+            showToast(type === 'deduction' ? 'Вычет добавлен' : 'Добавление сохранено', 'success');
+            
+            // Перерисовываем модальное окно
+            showParticipantCalcModal(participantName);
+            renderPerPerson();
+        }
+
+        function deleteAdjustment(participantName, index) {
+            if (!state.participantAdjustments[participantName]) return;
+
+            state.participantAdjustments[participantName].splice(index, 1);
+            saveSession();
+            showToast('Корректировка удалена', 'success');
+            
+            // Перерисовываем модальное окно
+            showParticipantCalcModal(participantName);
+            renderPerPerson();
+        }
+
+        function getParticipantAdjustmentStatus(participantName) {
+            const adjustments = state.participantAdjustments[participantName] || [];
+            if (adjustments.length === 0) return null;
+
+            const totalAdjustment = adjustments.reduce((sum, adj) => {
+                return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+            }, 0);
+
+            if (totalAdjustment < 0) {
+                return { type: 'deduction', amount: Math.abs(totalAdjustment) };
+            } else if (totalAdjustment > 0) {
+                return { type: 'addition', amount: totalAdjustment };
+            }
+            return null;
+        }
+
+        function formatDateTime(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return '';
+            }
         }
 
         // ============================================
@@ -1777,7 +2095,7 @@
                         <div class="form-group">
                             <label>Ед. измерения:</label>
                             <select id="ingredientUnit" class="input-field">
-                                <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
+                                                                <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
                                 <option value="г" ${ingredient && ingredient.unit === 'г' ? 'selected' : ''}>грамм</option>
                                 <option value="л" ${ingredient && ingredient.unit === 'л' ? 'selected' : ''}>литр</option>
                                 <option value="мл" ${ingredient && ingredient.unit === 'мл' ? 'selected' : ''}>миллилитр</option>
@@ -2031,7 +2349,7 @@
             if (state.participants.length > 0) {
                 if (entity.forAll) {
                     return total / state.participants.length;
-                                }
+                }
                 return entity.participants && entity.participants.length > 0 ? total / entity.participants.length : total;
             }
             return entity.personCount > 0 ? total / entity.personCount : total;
@@ -2199,20 +2517,50 @@
                 const perParticipant = calculatePerParticipant();
 
                 list.innerHTML = '<div class="per-person-list">' +
-                    Object.entries(perParticipant).map(([name, amount]) => `
-                        <div class="per-person-item">
-                            <span class="per-person-name">${escapeHtml(name)}</span>
-                            <span class="per-person-amount">${formatMoney(amount)}</span>
-                        </div>
-                    `).join('') +
+                    Object.entries(perParticipant).map(([name, amount]) => {
+                        const adjustmentStatus = getParticipantAdjustmentStatus(name);
+                        const adjustments = state.participantAdjustments[name] || [];
+                        const totalAdjustment = adjustments.reduce((sum, adj) => {
+                            return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+                        }, 0);
+                        const finalAmount = amount + totalAdjustment;
+
+                        let badgeHtml = '';
+                        let finalHtml = '';
+
+                        if (adjustmentStatus) {
+                            badgeHtml = `<span class="per-person-badge ${adjustmentStatus.type}">
+                                ${adjustmentStatus.type === 'deduction' ? '➖ Есть вычет' : '➕ Есть добавление'}
+                            </span>`;
+                            finalHtml = `<div class="per-person-final">
+                                <span>Итого к оплате:</span>
+                                <span class="per-person-final-amount">${formatMoney(finalAmount)}</span>
+                            </div>`;
+                        }
+
+                        return `
+                            <div class="per-person-item" onclick="showParticipantCalcModal('${escapeHtml(name)}')">
+                                <div class="per-person-top">
+                                    <span class="per-person-name">${escapeHtml(name)}</span>
+                                    <span class="per-person-amount">${formatMoney(amount)}</span>
+                                </div>
+                                ${badgeHtml}
+                                ${finalHtml}
+                            </div>
+                        `;
+                    }).join('') +
                 '</div>';
             } else {
                 const total = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
                 const perPerson = state.participantCount > 0 ? total / state.participantCount : total;
                 list.innerHTML = `
-                    <div class="per-person-item">
-                        <span class="per-person-name">С каждого участника</span>
-                        <span class="per-person-amount">${formatMoney(perPerson)}</span>
+                    <div class="per-person-list">
+                        <div class="per-person-item" style="cursor: default;">
+                            <div class="per-person-top">
+                                <span class="per-person-name">С каждого участника</span>
+                                <span class="per-person-amount">${formatMoney(perPerson)}</span>
+                            </div>
+                        </div>
                     </div>
                 `;
             }
@@ -2400,18 +2748,14 @@
                 const diffColor = diff >= 0 ? 'var(--success)' : 'var(--warning)';
 
                 html += `
-                    <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color};">
-                        <div>
+                    <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color}; cursor: default;">
+                        <div class="per-person-top">
                             <span class="per-person-name">${escapeHtml(type.name)}</span>
-                            <div style="font-size: 0.75rem; color: var(--text-secondary);">
-                                Норма: ${type.normKg || 0} кг × ${state.participants.length} чел. = ${expectedTotal.toFixed(2)} кг
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
                             <span class="per-person-amount" style="color: ${type.color};">${typeTotal.toFixed(2)} кг</span>
-                            <div style="font-size: 0.75rem; color: ${diffColor};">
-                                ${diffText}
-                            </div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
+                            Норма: ${type.normKg || 0} кг × ${state.participants.length} чел. = ${expectedTotal.toFixed(2)} кг
+                            <span style="color: ${diffColor}; margin-left: 8px;">${diffText}</span>
                         </div>
                     </div>
                 `;
