@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Смета застолья</title>
+    <title>Бублек.ру Еда</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -107,6 +107,31 @@
             gap: 16px;
             margin-bottom: 16px;
             flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary) 0%, #ff8a80 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: -4px;
         }
 
         h1 {
@@ -412,7 +437,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: grab;
+            cursor: pointer;
             transition: var(--transition);
             border: 2px solid var(--border);
             box-shadow: var(--shadow);
@@ -422,8 +447,6 @@
             border-color: var(--primary);
             transform: translateX(4px);
         }
-
-        .dish-row:active { cursor: grabbing; }
 
         .dish-name {
             font-weight: 500;
@@ -443,7 +466,7 @@
             gap: 12px;
             align-items: center;
             font-size: 0.85rem;
-            cursor: grab;
+            cursor: pointer;
             transition: var(--transition);
             border: 1px solid var(--border);
             border-left: 3px solid var(--secondary);
@@ -633,18 +656,6 @@
         .norms-table select:disabled {
             background: #f5f5f5;
             cursor: not-allowed;
-        }
-
-        .norm-kg {
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
-        .norm-details {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
 
         .participant-header { min-width: 110px; padding: 8px !important; }
@@ -923,31 +934,6 @@
             transform: translateX(24px);
         }
 
-        .import-session {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .import-textarea {
-            width: 100%;
-            min-height: 60px;
-            padding: 14px;
-            border: 2px solid var(--border);
-            border-radius: var(--radius);
-            font-family: inherit;
-            font-size: 0.9rem;
-            resize: vertical;
-            background: var(--bg-input);
-            transition: var(--transition);
-        }
-
-        .import-textarea:focus {
-            outline: none;
-            border-color: var(--success);
-            box-shadow: 0 0 0 3px rgba(92, 184, 92, 0.1);
-        }
-
         .sessions-list {
             display: flex;
             flex-direction: column;
@@ -1159,29 +1145,6 @@
             color: #1565c0;
         }
 
-        .toast-container {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .toast {
-            background: var(--text-primary);
-            color: var(--text-light);
-            padding: 14px 20px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-lg);
-            animation: slideUp 0.3s ease;
-        }
-
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.warning { background: var(--warning); color: var(--text-primary); }
-
         .calc-current {
             background: linear-gradient(135deg, var(--secondary) 0%, #d8d6cf 100%);
             padding: 16px;
@@ -1295,6 +1258,29 @@
             color: var(--text-secondary);
         }
 
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--text-primary);
+            color: var(--text-light);
+            padding: 14px 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); color: var(--text-primary); }
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -1368,8 +1354,14 @@
         <!-- ========== СТРАНИЦА СЕССИЙ ========== -->
         <div id="sessionsPage" class="hidden">
             <div class="card fade-in">
-                <h1>🎉 Смета застолья</h1>
-                <p class="subtitle">Планируйте праздники легко с облачной синхронизацией</p>
+                <div class="logo">
+                    <span class="logo-icon">🥯</span>
+                    <div>
+                        <div class="logo-text">Бублек.ру</div>
+                        <div class="logo-subtitle">Еда</div>
+                    </div>
+                </div>
+                <p class="subtitle" style="margin-top: 12px;">Планируйте праздники легко с облачной синхронизацией</p>
             </div>
 
             <div class="card fade-in">
@@ -1387,7 +1379,7 @@
 
             <div class="card fade-in">
                 <h2>Присоединиться по ссылке</h2>
-                <div class="import-session">
+                <div class="create-session">
                     <input type="text" id="joinSessionLink" class="input-field" placeholder="Вставьте ссылку на сессию">
                     <button class="btn btn-success" onclick="joinByLink()">Присоединиться</button>
                 </div>
@@ -1399,7 +1391,7 @@
             <header class="fade-in">
                 <div class="header-top">
                     <button class="btn btn-back" onclick="goToSessions()">← Назад</button>
-                    <h1 id="sessionTitle">Смета застолья</h1>
+                    <h1 id="sessionTitle">Бублек.ру Еда</h1>
                     <div id="syncStatus" class="sync-status online">
                         <span class="sync-dot"></span>
                         <span class="sync-text">Подключено</span>
@@ -1510,9 +1502,18 @@
   messagingSenderId: "79990577838",
   appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
 };
+
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        let database;
+        let firebaseInitialized = false;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            firebaseInitialized = true;
+        } catch (e) {
+            console.error('Firebase init error:', e);
+        }
 
         // ============================================
         // STATE
@@ -1532,7 +1533,7 @@
             purchased: {},
             participantAdjustments: {},
             contingency: {
-                type: 'percent', // 'percent' или 'fixed'
+                type: 'percent',
                 value: 0
             }
         };
@@ -1541,17 +1542,60 @@
         let sessionRef = null;
         let isOnline = true;
         let syncTimeout = null;
+        let localSessions = {}; // Локально сохранённые сессии
+
+        // ============================================
+        // LOCAL STORAGE FUNCTIONS
+        // ============================================
+        function loadLocalSessions() {
+            try {
+                const saved = localStorage.getItem('bublek_sessions');
+                localSessions = saved ? JSON.parse(saved) : {};
+            } catch (e) {
+                console.error('Load local sessions error:', e);
+                localSessions = {};
+            }
+        }
+
+        function saveLocalSessions() {
+            try {
+                localStorage.setItem('bublek_sessions', JSON.stringify(localSessions));
+            } catch (e) {
+                console.error('Save local sessions error:', e);
+            }
+        }
+
+        function saveSessionLocally(sessionId, sessionData) {
+            localSessions[sessionId] = {
+                id: sessionId,
+                name: sessionData.name,
+                ownerId: sessionData.ownerId,
+                isReadonly: sessionData.isReadonly || false,
+                created: sessionData.created,
+                lastAccessed: new Date().toISOString(),
+                isOwner: sessionData.ownerId === currentUserId
+            };
+            saveLocalSessions();
+        }
+
+        function removeLocalSession(sessionId) {
+            delete localSessions[sessionId];
+            saveLocalSessions();
+        }
 
         // ============================================
         // INITIALIZATION
         // ============================================
         document.addEventListener('DOMContentLoaded', async function() {
             // Генерируем или получаем ID пользователя
-            currentUserId = localStorage.getItem('partyUserId');
+            currentUserId = localStorage.getItem('bublek_userId');
             if (!currentUserId) {
                 currentUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('partyUserId', currentUserId);
+                localStorage.setItem('bublek_userId', currentUserId);
             }
+
+            // Загружаем локальные сессии
+            loadLocalSessions();
 
             // Проверяем URL на наличие ID сессии
             const urlParams = new URLSearchParams(window.location.search);
@@ -1564,10 +1608,12 @@
             }
 
             // Отслеживаем состояние подключения
-            database.ref('.info/connected').on('value', (snapshot) => {
-                isOnline = snapshot.val() === true;
-                updateSyncStatus();
-            });
+            if (firebaseInitialized) {
+                database.ref('.info/connected').on('value', (snapshot) => {
+                    isOnline = snapshot.val() === true;
+                    updateSyncStatus();
+                });
+            }
 
             hideLoading();
         });
@@ -1585,7 +1631,10 @@
             const statusEl = document.getElementById('syncStatus');
             if (!statusEl) return;
 
-            if (isOnline) {
+            if (!firebaseInitialized) {
+                statusEl.className = 'sync-status offline';
+                statusEl.querySelector('.sync-text').textContent = 'Локальный режим';
+            } else if (isOnline) {
                 statusEl.className = 'sync-status online';
                 statusEl.querySelector('.sync-text').textContent = 'Подключено';
             } else {
@@ -1611,73 +1660,42 @@
             // Очищаем URL
             window.history.replaceState({}, '', window.location.pathname);
             
-            loadMySessions();
+            renderLocalSessions();
         }
 
-        async function loadMySessions() {
+        function renderLocalSessions() {
             const container = document.getElementById('sessionsList');
-            container.innerHTML = '<p class="empty-message">Загрузка сессий...</p>';
+            
+            const sessionsList = Object.values(localSessions).sort((a, b) => 
+                new Date(b.lastAccessed) - new Date(a.lastAccessed)
+            );
 
-            try {
-                // Загружаем сессии, где текущий пользователь является владельцем
-                const snapshot = await database.ref('sessions')
-                    .orderByChild('ownerId')
-                    .equalTo(currentUserId)
-                    .once('value');
-
-                const sessions = [];
-                snapshot.forEach((child) => {
-                    sessions.push({
-                        id: child.key,
-                        ...child.val()
-                    });
-                });
-
-                // Также загружаем сессии из localStorage (посещенные)
-                const visitedSessions = JSON.parse(localStorage.getItem('visitedSessions') || '[]');
-                
-                for (const sessionId of visitedSessions) {
-                    if (!sessions.find(s => s.id === sessionId)) {
-                        const sessionSnapshot = await database.ref(`sessions/${sessionId}`).once('value');
-                        if (sessionSnapshot.exists()) {
-                            sessions.push({
-                                id: sessionId,
-                                ...sessionSnapshot.val(),
-                                isVisited: true
-                            });
-                        }
-                    }
-                }
-
-                if (sessions.length === 0) {
-                    container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
-                    return;
-                }
-
-                // Сортируем по дате создания
-                sessions.sort((a, b) => new Date(b.created) - new Date(a.created));
-
-                container.innerHTML = sessions.map((session, index) => `
-                    <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
-                        <div class="session-info">
-                            <span class="session-name">${escapeHtml(session.name)}</span>
-                            <span class="session-date">${formatDate(session.created)}</span>
-                            <span class="session-owner">${session.ownerId === currentUserId ? '👑 Вы владелец' : '👤 Участник'}</span>
-                        </div>
-                        <div class="session-actions">
-                            <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
-                            <button class="btn btn-secondary btn-small" onclick="copyLink('${session.id}')">Ссылка</button>
-                            ${session.ownerId === currentUserId ? `
-                                <button class="btn btn-delete btn-small" onclick="deleteSession('${session.id}')">Удалить</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (error) {
-                console.error('Load sessions error:', error);
-                container.innerHTML = '<p class="empty-message">Ошибка загрузки сессий</p>';
+            if (sessionsList.length === 0) {
+                container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
+                return;
             }
+
+            container.innerHTML = sessionsList.map((session, index) => `
+                <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
+                    <div class="session-info">
+                        <span class="session-name">${escapeHtml(session.name)}</span>
+                        <span class="session-date">${formatDate(session.lastAccessed)}</span>
+                        <span class="session-owner">${session.isOwner ? '👑 Вы владелец' : '👤 Участник'}</span>
+                    </div>
+                    <div class="session-actions">
+                        <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
+                        <button class="btn btn-secondary btn-small" onclick="copyLink('${session.id}')">Ссылка</button>
+                        <button class="btn btn-delete btn-small" onclick="removeFromList('${session.id}')">Убрать</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function removeFromList(sessionId) {
+            if (!confirm('Убрать сессию из списка? (Сама сессия не будет удалена)')) return;
+            removeLocalSession(sessionId);
+            renderLocalSessions();
+            showToast('Сессия убрана из списка', 'success');
         }
 
         async function createSession() {
@@ -1687,6 +1705,11 @@
             if (!name) {
                 showToast('Введите название праздника', 'warning');
                 nameInput.focus();
+                return;
+            }
+
+            if (!firebaseInitialized) {
+                showToast('Нет подключения к серверу', 'error');
                 return;
             }
 
@@ -1715,6 +1738,9 @@
 
                 await database.ref(`sessions/${sessionId}`).set(sessionData);
                 
+                // Сохраняем локально
+                saveSessionLocally(sessionId, sessionData);
+                
                 nameInput.value = '';
                 showToast('Сессия создана!', 'success');
                 await openSession(sessionId);
@@ -1727,6 +1753,11 @@
         }
 
         async function openSession(sessionId) {
+            if (!firebaseInitialized) {
+                showToast('Нет подключения к серверу', 'error');
+                return;
+            }
+
             showLoading('Загрузка сессии...');
 
             try {
@@ -1742,12 +1773,17 @@
                 if (!snapshot.exists()) {
                     showToast('Сессия не найдена', 'error');
                     hideLoading();
+                    // Удаляем из локального списка если не существует
+                    removeLocalSession(sessionId);
                     showSessionsPage();
                     return;
                 }
 
                 const sessionData = snapshot.val();
                 
+                // Сохраняем/обновляем локально
+                saveSessionLocally(sessionId, sessionData);
+
                 state.sessionId = sessionId;
                 state.sessionName = sessionData.name;
                 state.ownerId = sessionData.ownerId;
@@ -1764,9 +1800,6 @@
                 state.purchased = data.purchased || {};
                 state.participantAdjustments = data.participantAdjustments || {};
                 state.contingency = data.contingency || { type: 'percent', value: 0 };
-
-                // Сохраняем в посещенные
-                saveToVisited(sessionId);
 
                 // Обновляем URL
                 const newUrl = `${window.location.pathname}?session=${sessionId}`;
@@ -1810,10 +1843,13 @@
         }
 
         function handleRemoteUpdate(sessionData) {
-            // Проверяем, изменились ли данные
             const data = sessionData.data || {};
             
+            // Обновляем локальный кэш
+            saveSessionLocally(state.sessionId, sessionData);
+            
             state.sessionName = sessionData.name;
+            state.ownerId = sessionData.ownerId;
             state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
             state.participants = data.participants || [];
             state.participantCount = data.participantCount || 0;
@@ -1833,32 +1869,59 @@
 
         function setupUIForPermissions() {
             const isOwner = state.ownerId === currentUserId;
-            const canEdit = !state.isReadonly || isOwner;
+            const canEditData = !state.isReadonly || isOwner;
 
             // Показываем/скрываем баннер только для чтения
-            document.getElementById('readonlyBanner').classList.toggle('hidden', canEdit);
+            document.getElementById('readonlyBanner').classList.toggle('hidden', canEditData);
             
             // Показываем/скрываем панель владельца
             document.getElementById('ownerControls').classList.toggle('hidden', !isOwner);
             
             // Обновляем checkbox
             if (isOwner) {
-                document.getElementById('readonlyToggle').checked = state.isReadonly;
+                const toggle = document.getElementById('readonlyToggle');
+                if (toggle) {
+                    toggle.checked = state.isReadonly;
+                }
             }
 
             // Отключаем элементы управления если нельзя редактировать
-            document.getElementById('participantsInput').disabled = !canEdit;
-            document.getElementById('applyParticipantsBtn').disabled = !canEdit;
+            document.getElementById('participantsInput').disabled = !canEditData;
+            document.getElementById('applyParticipantsBtn').disabled = !canEditData;
             
             const toolbar = document.getElementById('mainToolbar');
-            toolbar.querySelectorAll('.btn').forEach(btn => btn.disabled = !canEdit);
+            toolbar.querySelectorAll('.btn').forEach(btn => btn.disabled = !canEditData);
         }
 
-        function saveToVisited(sessionId) {
-            let visited = JSON.parse(localStorage.getItem('visitedSessions') || '[]');
-            if (!visited.includes(sessionId)) {
-                visited.push(sessionId);
-                localStorage.setItem('visitedSessions', JSON.stringify(visited));
+        async function toggleReadonly() {
+            if (!sessionRef) {
+                showToast('Нет подключения к сессии', 'error');
+                return;
+            }
+
+            const toggle = document.getElementById('readonlyToggle');
+            const newValue = toggle.checked;
+            
+            setSyncingStatus();
+
+            try {
+                await sessionRef.update({ isReadonly: newValue });
+                state.isReadonly = newValue;
+                
+                // Обновляем локальный кэш
+                if (localSessions[state.sessionId]) {
+                    localSessions[state.sessionId].isReadonly = newValue;
+                    saveLocalSessions();
+                }
+                
+                updateSyncStatus();
+                showToast(newValue ? 'Режим "только просмотр" включён' : 'Редактирование разрешено', 'success');
+            } catch (error) {
+                console.error('Toggle readonly error:', error);
+                // Откатываем состояние чекбокса
+                toggle.checked = !newValue;
+                updateSyncStatus();
+                showToast('Ошибка изменения настройки: ' + error.message, 'error');
             }
         }
 
@@ -1869,8 +1932,9 @@
 
             try {
                 await database.ref(`sessions/${sessionId}`).remove();
+                removeLocalSession(sessionId);
                 showToast('Сессия удалена', 'success');
-                loadMySessions();
+                renderLocalSessions();
             } catch (error) {
                 console.error('Delete session error:', error);
                 showToast('Ошибка удаления', 'error');
@@ -1922,21 +1986,9 @@
                 } catch (error) {
                     console.error('Save error:', error);
                     showToast('Ошибка сохранения', 'error');
+                    updateSyncStatus();
                 }
             }, 500);
-        }
-
-        async function toggleReadonly() {
-            const isReadonly = document.getElementById('readonlyToggle').checked;
-            
-            try {
-                await sessionRef.child('isReadonly').set(isReadonly);
-                state.isReadonly = isReadonly;
-                showToast(isReadonly ? 'Режим только просмотр включён' : 'Редактирование разрешено', 'success');
-            } catch (error) {
-                console.error('Toggle readonly error:', error);
-                showToast('Ошибка изменения настройки', 'error');
-            }
         }
 
         // ============================================
@@ -1993,6 +2045,7 @@
                 const sessionId = url.searchParams.get('session');
                 
                 if (sessionId) {
+                    input.value = '';
                     openSession(sessionId);
                 } else {
                     showToast('Неверная ссылка', 'error');
@@ -2000,6 +2053,7 @@
             } catch (e) {
                 // Возможно это просто ID сессии
                 if (link.startsWith('session_')) {
+                    input.value = '';
                     openSession(link);
                 } else {
                     showToast('Неверная ссылка', 'error');
@@ -2030,7 +2084,7 @@
         // PARTICIPANTS
         // ============================================
         function applyParticipants() {
-            if (state.isReadonly && state.ownerId !== currentUserId) {
+            if (!canEdit()) {
                 showToast('Нет прав на редактирование', 'warning');
                 return;
             }
@@ -2073,6 +2127,10 @@
             showToast('Участники обновлены', 'success');
         }
 
+        function canEdit() {
+            return !state.isReadonly || state.ownerId === currentUserId;
+        }
+
         // ============================================
         // MODAL
         // ============================================
@@ -2087,12 +2145,8 @@
             document.body.style.overflow = '';
         }
 
-        function canEdit() {
-            return !state.isReadonly || state.ownerId === currentUserId;
-        }
-
         // ============================================
-        // CONTINGENCY (НЕПРЕДВИДЕННЫЕ РАСХОДЫ)
+        // CONTINGENCY
         // ============================================
         function showContingencyModal() {
             if (!canEdit()) {
@@ -2152,7 +2206,7 @@
 
                     <div class="modal-actions">
                         <button class="btn btn-secondary" onclick="clearContingency()">Сбросить</button>
-                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                                                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
                         <button class="btn btn-primary" onclick="saveContingency()">Сохранить</button>
                     </div>
                 </div>
@@ -2174,7 +2228,7 @@
             let contingency = 0;
 
             if (type === 'percent') {
-                                const percent = parseFloat(document.getElementById('contingencyPercent').value) || 0;
+                const percent = parseFloat(document.getElementById('contingencyPercent').value) || 0;
                 contingency = baseCost * (percent / 100);
             } else {
                 contingency = parseFloat(document.getElementById('contingencyFixed').value) || 0;
@@ -2272,7 +2326,7 @@
 
                     <div class="calc-result">
                         <div class="calc-result-label">Итого к оплате</div>
-                        <div class="calc-result-amount" id="calcResultAmount">${formatMoney(finalAmount)}</div>
+                        <div class="calc-result-amount">${formatMoney(finalAmount)}</div>
                     </div>
 
                     ${historyHtml}
@@ -2447,7 +2501,7 @@
                 }
             }
 
-            document.getElementById('typeName').focus();
+            setTimeout(() => document.getElementById('typeName').focus(), 100);
         }
 
         function saveType(editId) {
@@ -2519,7 +2573,7 @@
         // ============================================
         // DISH FUNCTIONS
         // ============================================
-        function showDishModal(editId = null, presetTypeId = null) {
+        function showDishModal(editId = null) {
             if (!canEdit()) {
                 showToast('Нет прав на редактирование', 'warning');
                 return;
@@ -2529,7 +2583,7 @@
             const isEdit = !!dish;
 
             const typesOptions = state.types.map(t => 
-                `<option value="${t.id}" ${dish && dish.typeId === t.id ? 'selected' : presetTypeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+                `<option value="${t.id}" ${dish && dish.typeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
             ).join('');
 
             const participantsHtml = state.participants.length > 0 ? `
@@ -2558,7 +2612,7 @@
             `;
 
             showModal(`
-                <h3>${isEdit ? 'Редактирование блюда' : 'Добавление блюда или напитка'}</h3>
+                <h3>${isEdit ? 'Редактирование блюда' : 'Добавление блюда'}</h3>
                 <div class="modal-form">
                     <div class="form-group">
                         <label>Название:</label>
@@ -2596,7 +2650,7 @@
                 }
             }
 
-            document.getElementById('dishName').focus();
+            setTimeout(() => document.getElementById('dishName').focus(), 100);
         }
 
         function saveDish(editId) {
@@ -2735,7 +2789,7 @@
             document.getElementById('ingredientPrice').addEventListener('input', updateTotal);
             updateTotal();
 
-            document.getElementById('ingredientName').focus();
+            setTimeout(() => document.getElementById('ingredientName').focus(), 100);
         }
 
         function saveIngredient(parentType, parentId, editId) {
@@ -2826,7 +2880,7 @@
 
             let html = `
                 <div class="type-row" style="background: linear-gradient(135deg, ${type.color} 0%, ${adjustColor(type.color, -20)} 100%)" 
-                    data-type-id="${type.id}" onclick="${editable ? `showTypeModal('${type.id}')` : ''}">
+                    onclick="${editable ? `showTypeModal('${type.id}')` : ''}">
                     <span class="type-name">
                         ${escapeHtml(type.name)}
                         <span class="type-badge">${dishCount} ${pluralize(dishCount, 'блюдо', 'блюда', 'блюд')}</span>
@@ -2871,7 +2925,7 @@
             const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
 
             let html = `
-                <div class="dish-row" data-dish-id="${dish.id}" onclick="${editable ? `showDishModal('${dish.id}')` : ''}">
+                <div class="dish-row" onclick="${editable ? `showDishModal('${dish.id}')` : ''}">
                     <span class="dish-name">${escapeHtml(dish.name)}</span>
                     <div class="dish-actions" onclick="event.stopPropagation()">
                         <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')" title="Участники">
@@ -2910,8 +2964,7 @@
         function renderIngredient(ing, editable) {
             const total = ing.quantity * ing.price;
             return `
-                <div class="ingredient-row" data-ingredient-id="${ing.id}" 
-                    onclick="${editable ? `showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')` : ''}">
+                <div class="ingredient-row" onclick="${editable ? `showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')` : ''}">
                     <span class="ingredient-name">${escapeHtml(ing.name)}</span>
                     <span class="ingredient-quantity">${ing.quantity} ${ing.unit}</span>
                     <span class="ingredient-price">${formatMoney(ing.price)}</span>
@@ -3135,17 +3188,7 @@
 
             state.participants.forEach(p => {
                 const calories = state.participantCalories[p] || 2000;
-                html += `
-                    <th class="participant-header">
-                        <div>${escapeHtml(p)}</div>
-                        <div class="calorie-input">
-                            <input type="number" value="${calories}" min="1000" max="5000" step="100" 
-                                onchange="updateCalories('${escapeHtml(p)}', this.value)" 
-                                title="Норма калорий"
-                                ${!editable ? 'disabled' : ''}>
-                        </div>
-                    </th>
-                `;
+                html += `<th class="participant-header">${escapeHtml(p)}</th>`;
             });
 
             html += '<th>Итого</th></tr></thead><tbody>';
@@ -3208,7 +3251,6 @@
                 `;
             });
 
-            // Расчёт стоимости блюда
             const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
             const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
 
@@ -3229,14 +3271,6 @@
                 state.norms[dishId] = {};
             }
             state.norms[dishId][participant] = parseInt(value);
-            saveSession();
-            render();
-        }
-
-        function updateCalories(participant, value) {
-            if (!canEdit()) return;
-
-            state.participantCalories[participant] = parseInt(value) || 2000;
             saveSession();
             render();
         }
@@ -3308,7 +3342,7 @@
                 return a.name.localeCompare(b.name, 'ru');
             });
 
-            items.forEach((item, index) => {
+            items.forEach((item) => {
                 const isPurchased = state.purchased[item.id];
                 const sourcesText = [...new Set(item.sources)].join(', ');
                 const escapedId = item.id.replace(/'/g, "\\'");
@@ -3375,7 +3409,6 @@
             const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
             const contingency = calculateContingency();
             const totalCost = baseCost + contingency;
-            const totalItems = state.ingredients.length;
             const totalDishes = state.dishes.length;
             const participantsCount = state.participants.length || state.participantCount || 1;
             const perPerson = totalCost / participantsCount;
@@ -3400,7 +3433,7 @@
                         <div class="summary-value">${formatMoney(totalCost)}</div>
                         <div class="summary-label">Общая стоимость</div>
                     </div>
-                    <div class="summary-card contingency clickable" onclick="${editable ? 'showContingencyModal()' : ''}">
+                    <div class="summary-card contingency ${editable ? 'clickable' : ''}" onclick="${editable ? 'showContingencyModal()' : ''}">
                         <div class="summary-value">${formatMoney(contingency)}</div>
                         <div class="summary-label">Непредвиденные расходы</div>
                         ${state.contingency.value > 0 ? `<div class="summary-hint">${contingencyText}</div>` : ''}
