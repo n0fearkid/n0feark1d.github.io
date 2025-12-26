@@ -112,26 +112,35 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 16px;
         }
 
-        .logo-icon {
-            font-size: 2rem;
+        .logo-img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+        }
+
+        .logo-img-small {
+            width: 75px;
+            height: 75px;
+            object-fit: contain;
         }
 
         .logo-text {
-            font-size: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-title {
+            font-size: 2rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--primary) 0%, #ff8a80 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--primary);
         }
 
         .logo-subtitle {
-            font-size: 0.75rem;
+            font-size: 1rem;
             color: var(--text-secondary);
-            margin-top: -4px;
         }
 
         h1 {
@@ -221,10 +230,6 @@
             align-items: center;
             gap: 10px;
             font-size: 0.9rem;
-        }
-
-        .readonly-banner .icon {
-            font-size: 1.2rem;
         }
 
         .btn {
@@ -656,6 +661,18 @@
         .norms-table select:disabled {
             background: #f5f5f5;
             cursor: not-allowed;
+        }
+
+        .norm-kg {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .norm-details {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .participant-header { min-width: 110px; padding: 8px !important; }
@@ -1334,12 +1351,17 @@
             .session-link-actions .btn { width: 100%; }
             .calc-input-group { flex-direction: column; }
             .calc-input-group .btn { width: 100%; }
+            .logo-img { width: 100px; height: 100px; }
+            .logo-img-small { width: 50px; height: 50px; }
+            .logo-title { font-size: 1.5rem; }
         }
 
         @media (max-width: 480px) {
             .shopping-item { grid-template-columns: auto 1fr; gap: 8px; }
             .shopping-item-price { grid-column: 2; }
             .summary-grid { grid-template-columns: 1fr; }
+            .logo-img { width: 80px; height: 80px; }
+            .logo-img-small { width: 40px; height: 40px; }
         }
     </style>
 </head>
@@ -1355,9 +1377,9 @@
         <div id="sessionsPage" class="hidden">
             <div class="card fade-in">
                 <div class="logo">
-                    <span class="logo-icon">🥯</span>
-                    <div>
-                        <div class="logo-text">Бублек.ру</div>
+                    <img src="logo.png" alt="Бублек.ру" class="logo-img">
+                    <div class="logo-text">
+                        <div class="logo-title">Бублек.ру</div>
                         <div class="logo-subtitle">Еда</div>
                     </div>
                 </div>
@@ -1391,7 +1413,10 @@
             <header class="fade-in">
                 <div class="header-top">
                     <button class="btn btn-back" onclick="goToSessions()">← Назад</button>
-                    <h1 id="sessionTitle">Бублек.ру Еда</h1>
+                    <div class="logo">
+                        <img src="logo.png" alt="Бублек.ру" class="logo-img-small">
+                        <h1 id="sessionTitle">Бублек.ру Еда</h1>
+                    </div>
                     <div id="syncStatus" class="sync-status online">
                         <span class="sync-dot"></span>
                         <span class="sync-text">Подключено</span>
@@ -1399,7 +1424,6 @@
                 </div>
 
                 <div id="readonlyBanner" class="readonly-banner hidden">
-                    <span class="icon">🔒</span>
                     <span>Режим просмотра. Только владелец может редактировать эту сессию.</span>
                 </div>
 
@@ -1453,20 +1477,20 @@
 
             <section class="session-link-section card fade-in">
                 <div class="section-header">
-                    <h3>🔗 Ссылка на сессию</h3>
+                    <h3>Ссылка на сессию</h3>
                     <p class="section-subtitle">Поделитесь ссылкой с участниками для совместного редактирования</p>
                 </div>
                 <div class="session-link-container">
                     <div class="session-link-input">
                         <input type="text" id="sessionLinkInput" readonly>
-                        <button class="btn btn-primary" onclick="copySessionLink()">📋 Копировать</button>
+                        <button class="btn btn-primary" onclick="copySessionLink()">Копировать</button>
                     </div>
                     <div class="session-link-actions">
-                        <button class="btn btn-info" onclick="shareSession()">📤 Поделиться</button>
+                        <button class="btn btn-info" onclick="shareSession()">Поделиться</button>
                     </div>
                     
                     <div id="ownerControls" class="owner-controls hidden">
-                        <h4>⚙️ Настройки владельца</h4>
+                        <h4>Настройки владельца</h4>
                         <div class="control-row">
                             <label class="toggle-switch">
                                 <input type="checkbox" id="readonlyToggle" onchange="toggleReadonly()">
@@ -1492,8 +1516,7 @@
         // ============================================
         // FIREBASE CONFIGURATION
         // ============================================
-        // ВАЖНО: Замените на свою конфигурацию Firebase!
-        const firebaseConfig = {
+    const firebaseConfig = {
   apiKey: "AIzaSyBuQkcqVg_30Fho3Svq7Zz75Abwqcp5MBE",
   authDomain: "mikhailnbublek1.firebaseapp.com",
   databaseURL: "https://mikhailnbublek1-default-rtdb.europe-west1.firebasedatabase.app",
@@ -1503,7 +1526,6 @@
   appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
 };
 
-        // Initialize Firebase
         let database;
         let firebaseInitialized = false;
 
@@ -1532,27 +1554,23 @@
             participantCalories: {},
             purchased: {},
             participantAdjustments: {},
-            contingency: {
-                type: 'percent',
-                value: 0
-            }
+            contingency: { type: 'percent', value: 0 }
         };
 
         let currentUserId = null;
         let sessionRef = null;
         let isOnline = true;
         let syncTimeout = null;
-        let localSessions = {}; // Локально сохранённые сессии
+        let localSessions = {};
 
         // ============================================
-        // LOCAL STORAGE FUNCTIONS
+        // LOCAL STORAGE
         // ============================================
         function loadLocalSessions() {
             try {
                 const saved = localStorage.getItem('bublek_sessions');
                 localSessions = saved ? JSON.parse(saved) : {};
             } catch (e) {
-                console.error('Load local sessions error:', e);
                 localSessions = {};
             }
         }
@@ -1560,9 +1578,7 @@
         function saveLocalSessions() {
             try {
                 localStorage.setItem('bublek_sessions', JSON.stringify(localSessions));
-            } catch (e) {
-                console.error('Save local sessions error:', e);
-            }
+            } catch (e) {}
         }
 
         function saveSessionLocally(sessionId, sessionData) {
@@ -1587,17 +1603,14 @@
         // INITIALIZATION
         // ============================================
         document.addEventListener('DOMContentLoaded', async function() {
-            // Генерируем или получаем ID пользователя
             currentUserId = localStorage.getItem('bublek_userId');
             if (!currentUserId) {
                 currentUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('bublek_userId', currentUserId);
             }
 
-            // Загружаем локальные сессии
             loadLocalSessions();
 
-            // Проверяем URL на наличие ID сессии
             const urlParams = new URLSearchParams(window.location.search);
             const sessionIdFromUrl = urlParams.get('session');
 
@@ -1607,7 +1620,6 @@
                 showSessionsPage();
             }
 
-            // Отслеживаем состояние подключения
             if (firebaseInitialized) {
                 database.ref('.info/connected').on('value', (snapshot) => {
                     isOnline = snapshot.val() === true;
@@ -1656,16 +1668,12 @@
         function showSessionsPage() {
             document.getElementById('sessionsPage').classList.remove('hidden');
             document.getElementById('calculatorPage').classList.add('hidden');
-            
-            // Очищаем URL
             window.history.replaceState({}, '', window.location.pathname);
-            
             renderLocalSessions();
         }
 
         function renderLocalSessions() {
             const container = document.getElementById('sessionsList');
-            
             const sessionsList = Object.values(localSessions).sort((a, b) => 
                 new Date(b.lastAccessed) - new Date(a.lastAccessed)
             );
@@ -1680,7 +1688,7 @@
                     <div class="session-info">
                         <span class="session-name">${escapeHtml(session.name)}</span>
                         <span class="session-date">${formatDate(session.lastAccessed)}</span>
-                        <span class="session-owner">${session.isOwner ? '👑 Вы владелец' : '👤 Участник'}</span>
+                        <span class="session-owner">${session.isOwner ? 'Вы владелец' : 'Участник'}</span>
                     </div>
                     <div class="session-actions">
                         <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
@@ -1692,7 +1700,7 @@
         }
 
         function removeFromList(sessionId) {
-            if (!confirm('Убрать сессию из списка? (Сама сессия не будет удалена)')) return;
+            if (!confirm('Убрать сессию из списка?')) return;
             removeLocalSession(sessionId);
             renderLocalSessions();
             showToast('Сессия убрана из списка', 'success');
@@ -1737,14 +1745,10 @@
                 };
 
                 await database.ref(`sessions/${sessionId}`).set(sessionData);
-                
-                // Сохраняем локально
                 saveSessionLocally(sessionId, sessionData);
-                
                 nameInput.value = '';
                 showToast('Сессия создана!', 'success');
                 await openSession(sessionId);
-
             } catch (error) {
                 console.error('Create session error:', error);
                 showToast('Ошибка создания сессии', 'error');
@@ -1761,34 +1765,27 @@
             showLoading('Загрузка сессии...');
 
             try {
-                // Отписываемся от предыдущей сессии
-                if (sessionRef) {
-                    sessionRef.off();
-                }
+                if (sessionRef) sessionRef.off();
 
                 sessionRef = database.ref(`sessions/${sessionId}`);
-                
                 const snapshot = await sessionRef.once('value');
-                
+
                 if (!snapshot.exists()) {
                     showToast('Сессия не найдена', 'error');
                     hideLoading();
-                    // Удаляем из локального списка если не существует
                     removeLocalSession(sessionId);
                     showSessionsPage();
                     return;
                 }
 
                 const sessionData = snapshot.val();
-                
-                // Сохраняем/обновляем локально
                 saveSessionLocally(sessionId, sessionData);
 
                 state.sessionId = sessionId;
                 state.sessionName = sessionData.name;
                 state.ownerId = sessionData.ownerId;
                 state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
-                
+
                 const data = sessionData.data || {};
                 state.participants = data.participants || [];
                 state.participantCount = data.participantCount || 0;
@@ -1801,39 +1798,29 @@
                 state.participantAdjustments = data.participantAdjustments || {};
                 state.contingency = data.contingency || { type: 'percent', value: 0 };
 
-                // Обновляем URL
                 const newUrl = `${window.location.pathname}?session=${sessionId}`;
                 window.history.replaceState({}, '', newUrl);
 
-                // Показываем страницу калькулятора
                 document.getElementById('sessionsPage').classList.add('hidden');
                 document.getElementById('calculatorPage').classList.remove('hidden');
-                
                 document.getElementById('sessionTitle').textContent = sessionData.name;
-                
-                // Настраиваем UI в зависимости от прав
+
                 setupUIForPermissions();
-                
-                // Заполняем поле участников
+
                 if (state.participants.length > 0) {
                     document.getElementById('participantsInput').value = state.participants.join(', ');
                 } else if (state.participantCount > 0) {
                     document.getElementById('participantsInput').value = state.participantCount.toString();
                 }
 
-                // Обновляем ссылку на сессию
                 updateSessionLink();
 
-                // Подписываемся на изменения в реальном времени
                 sessionRef.on('value', (snapshot) => {
-                    if (snapshot.exists()) {
-                        handleRemoteUpdate(snapshot.val());
-                    }
+                    if (snapshot.exists()) handleRemoteUpdate(snapshot.val());
                 });
 
                 render();
                 hideLoading();
-
             } catch (error) {
                 console.error('Open session error:', error);
                 showToast('Ошибка открытия сессии', 'error');
@@ -1843,14 +1830,13 @@
         }
 
         function handleRemoteUpdate(sessionData) {
-            const data = sessionData.data || {};
-            
-            // Обновляем локальный кэш
             saveSessionLocally(state.sessionId, sessionData);
-            
+
             state.sessionName = sessionData.name;
             state.ownerId = sessionData.ownerId;
             state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
+
+            const data = sessionData.data || {};
             state.participants = data.participants || [];
             state.participantCount = data.participantCount || 0;
             state.types = data.types || [];
@@ -1871,24 +1857,17 @@
             const isOwner = state.ownerId === currentUserId;
             const canEditData = !state.isReadonly || isOwner;
 
-            // Показываем/скрываем баннер только для чтения
             document.getElementById('readonlyBanner').classList.toggle('hidden', canEditData);
-            
-            // Показываем/скрываем панель владельца
             document.getElementById('ownerControls').classList.toggle('hidden', !isOwner);
-            
-            // Обновляем checkbox
+
             if (isOwner) {
                 const toggle = document.getElementById('readonlyToggle');
-                if (toggle) {
-                    toggle.checked = state.isReadonly;
-                }
+                if (toggle) toggle.checked = state.isReadonly;
             }
 
-            // Отключаем элементы управления если нельзя редактировать
             document.getElementById('participantsInput').disabled = !canEditData;
             document.getElementById('applyParticipantsBtn').disabled = !canEditData;
-            
+
             const toolbar = document.getElementById('mainToolbar');
             toolbar.querySelectorAll('.btn').forEach(btn => btn.disabled = !canEditData);
         }
@@ -1899,48 +1878,33 @@
                 return;
             }
 
+            if (state.ownerId !== currentUserId) {
+                showToast('Только владелец может изменять эту настройку', 'error');
+                return;
+            }
+
             const toggle = document.getElementById('readonlyToggle');
             const newValue = toggle.checked;
-            
+
             setSyncingStatus();
 
             try {
-                await sessionRef.update({ isReadonly: newValue });
+                await database.ref(`sessions/${state.sessionId}`).update({ isReadonly: newValue });
                 state.isReadonly = newValue;
-                
-                // Обновляем локальный кэш
+
                 if (localSessions[state.sessionId]) {
                     localSessions[state.sessionId].isReadonly = newValue;
                     saveLocalSessions();
                 }
-                
+
                 updateSyncStatus();
                 showToast(newValue ? 'Режим "только просмотр" включён' : 'Редактирование разрешено', 'success');
             } catch (error) {
                 console.error('Toggle readonly error:', error);
-                // Откатываем состояние чекбокса
                 toggle.checked = !newValue;
                 updateSyncStatus();
-                showToast('Ошибка изменения настройки: ' + error.message, 'error');
+                showToast('Ошибка сохранения настройки', 'error');
             }
-        }
-
-        async function deleteSession(sessionId) {
-            if (!confirm('Удалить эту сессию? Это действие нельзя отменить.')) return;
-
-            showLoading('Удаление сессии...');
-
-            try {
-                await database.ref(`sessions/${sessionId}`).remove();
-                removeLocalSession(sessionId);
-                showToast('Сессия удалена', 'success');
-                renderLocalSessions();
-            } catch (error) {
-                console.error('Delete session error:', error);
-                showToast('Ошибка удаления', 'error');
-            }
-
-            hideLoading();
         }
 
         function goToSessions() {
@@ -1957,8 +1921,7 @@
         // ============================================
         function saveSession() {
             if (!state.sessionId || !sessionRef) return;
-            
-            // Проверяем права на редактирование
+
             if (state.isReadonly && state.ownerId !== currentUserId) {
                 showToast('Нет прав на редактирование', 'warning');
                 return;
@@ -1966,7 +1929,6 @@
 
             setSyncingStatus();
 
-            // Отложенное сохранение для оптимизации
             clearTimeout(syncTimeout);
             syncTimeout = setTimeout(async () => {
                 try {
@@ -2013,7 +1975,7 @@
 
         async function shareSession() {
             const link = document.getElementById('sessionLinkInput').value;
-            
+
             if (navigator.share) {
                 try {
                     await navigator.share({
@@ -2022,9 +1984,7 @@
                         url: link
                     });
                 } catch (error) {
-                    if (error.name !== 'AbortError') {
-                        copySessionLink();
-                    }
+                    if (error.name !== 'AbortError') copySessionLink();
                 }
             } else {
                 copySessionLink();
@@ -2034,7 +1994,7 @@
         function joinByLink() {
             const input = document.getElementById('joinSessionLink');
             const link = input.value.trim();
-            
+
             if (!link) {
                 showToast('Вставьте ссылку', 'warning');
                 return;
@@ -2043,7 +2003,7 @@
             try {
                 const url = new URL(link);
                 const sessionId = url.searchParams.get('session');
-                
+
                 if (sessionId) {
                     input.value = '';
                     openSession(sessionId);
@@ -2051,7 +2011,6 @@
                     showToast('Неверная ссылка', 'error');
                 }
             } catch (e) {
-                // Возможно это просто ID сессии
                 if (link.startsWith('session_')) {
                     input.value = '';
                     openSession(link);
@@ -2076,7 +2035,7 @@
             textarea.style.left = '-9999px';
             document.body.appendChild(textarea);
             textarea.select();
-            try { document.execCommand('copy'); } catch (e) { }
+            try { document.execCommand('copy'); } catch (e) {}
             document.body.removeChild(textarea);
         }
 
@@ -2103,22 +2062,14 @@
             }
 
             state.participants.forEach(p => {
-                if (!state.participantCalories[p]) {
-                    state.participantCalories[p] = 2000;
-                }
-                if (!state.participantAdjustments[p]) {
-                    state.participantAdjustments[p] = [];
-                }
+                if (!state.participantCalories[p]) state.participantCalories[p] = 2000;
+                if (!state.participantAdjustments[p]) state.participantAdjustments[p] = [];
             });
 
             state.dishes.forEach(dish => {
-                if (!state.norms[dish.id]) {
-                    state.norms[dish.id] = {};
-                }
+                if (!state.norms[dish.id]) state.norms[dish.id] = {};
                 state.participants.forEach(p => {
-                    if (state.norms[dish.id][p] === undefined) {
-                        state.norms[dish.id][p] = 2;
-                    }
+                    if (state.norms[dish.id][p] === undefined) state.norms[dish.id][p] = 2;
                 });
             });
 
@@ -2158,7 +2109,7 @@
             const currentContingency = calculateContingency();
 
             showModal(`
-                <h3>💰 Непредвиденные расходы</h3>
+                <h3>Непредвиденные расходы</h3>
                 <div class="modal-form">
                     <div class="calc-current">
                         <div class="calc-current-label">Базовая стоимость всех блюд</div>
@@ -2184,7 +2135,7 @@
                     </div>
 
                     <div class="form-group" id="percentGroup" ${state.contingency.type === 'fixed' ? 'style="display:none"' : ''}>
-                        <label>Процент непредвиденных расходов (%):</label>
+                        <label>Процент (%):</label>
                         <input type="number" id="contingencyPercent" class="input-field" 
                             min="0" max="100" step="1" 
                             value="${state.contingency.type === 'percent' ? state.contingency.value : 10}"
@@ -2192,7 +2143,7 @@
                     </div>
 
                     <div class="form-group" id="fixedGroup" ${state.contingency.type === 'percent' ? 'style="display:none"' : ''}>
-                        <label>Фиксированная сумма (руб.):</label>
+                        <label>Сумма (руб.):</label>
                         <input type="number" id="contingencyFixed" class="input-field" 
                             min="0" step="100" 
                             value="${state.contingency.type === 'fixed' ? state.contingency.value : 0}"
@@ -2200,19 +2151,18 @@
                     </div>
 
                     <div class="contingency-preview">
-                        <div class="label">Непредвиденные расходы составят:</div>
+                        <div class="label">Непредвиденные расходы:</div>
                         <div class="value" id="contingencyPreviewValue">${formatMoney(currentContingency)}</div>
                     </div>
 
                     <div class="modal-actions">
                         <button class="btn btn-secondary" onclick="clearContingency()">Сбросить</button>
-                                                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
                         <button class="btn btn-primary" onclick="saveContingency()">Сохранить</button>
                     </div>
                 </div>
             `);
 
-            // Обработчик переключения типа
             document.querySelectorAll('input[name="contingencyType"]').forEach(radio => {
                 radio.addEventListener('change', function() {
                     document.getElementById('percentGroup').style.display = this.value === 'percent' ? '' : 'none';
@@ -2251,35 +2201,33 @@
             saveSession();
             closeModal();
             render();
-            showToast('Непредвиденные расходы сохранены', 'success');
+            showToast('Сохранено', 'success');
         }
 
-        function clearContingency() {
+                function clearContingency() {
             state.contingency = { type: 'percent', value: 0 };
             saveSession();
             closeModal();
             render();
-            showToast('Непредвиденные расходы сброшены', 'success');
+            showToast('Сброшено', 'success');
         }
 
         function calculateContingency() {
             const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-            
             if (state.contingency.type === 'percent') {
                 return baseCost * (state.contingency.value / 100);
-            } else {
-                return state.contingency.value;
             }
+            return state.contingency.value;
         }
 
         // ============================================
-        // PARTICIPANT CALCULATION MODAL
+        // PARTICIPANT CALCULATION
         // ============================================
         function showParticipantCalcModal(participantName) {
             const perParticipant = calculatePerParticipant();
             const baseAmount = perParticipant[participantName] || 0;
             const adjustments = state.participantAdjustments[participantName] || [];
-            
+
             const totalAdjustment = adjustments.reduce((sum, adj) => {
                 return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
             }, 0);
@@ -2292,11 +2240,11 @@
                         ${adjustments.map((adj, index) => `
                             <div class="calc-history-item">
                                 <div class="calc-history-info">
-                                    <span class="calc-history-type ${adj.type}">${adj.type === 'deduction' ? '➖ Вычет' : '➕ Добавление'}</span>
+                                    <span class="calc-history-type ${adj.type}">${adj.type === 'deduction' ? 'Вычет' : 'Добавление'}</span>
                                     <span class="calc-history-amount">${formatMoney(adj.amount)}</span>
                                     <span class="calc-history-date">${formatDateTime(adj.date)}</span>
                                 </div>
-                                ${canEdit() ? `<button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">×</button>` : ''}
+                                ${canEdit() ? `<button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">X</button>` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -2307,9 +2255,9 @@
                 <div class="form-group">
                     <label>Вычесть или добавить (руб.):</label>
                     <div class="calc-input-group">
-                        <input type="number" id="adjustmentAmount" class="input-field" placeholder="Введите сумму" min="0" step="0.01">
-                        <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">➖ Вычесть</button>
-                        <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">➕ Добавить</button>
+                        <input type="number" id="adjustmentAmount" class="input-field" placeholder="Сумма" min="0" step="0.01">
+                        <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">Вычесть</button>
+                        <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">Добавить</button>
                     </div>
                 </div>
             ` : '';
@@ -2318,19 +2266,15 @@
                 <h3>Расчёт для ${escapeHtml(participantName)}</h3>
                 <div class="modal-form">
                     <div class="calc-current">
-                        <div class="calc-current-label">Базовая сумма (с каждого участника)</div>
+                        <div class="calc-current-label">Базовая сумма</div>
                         <div class="calc-current-amount">${formatMoney(baseAmount)}</div>
                     </div>
-
                     ${editControls}
-
                     <div class="calc-result">
                         <div class="calc-result-label">Итого к оплате</div>
                         <div class="calc-result-amount">${formatMoney(finalAmount)}</div>
                     </div>
-
                     ${historyHtml}
-
                     <div class="modal-actions">
                         <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
                     </div>
@@ -2339,16 +2283,13 @@
         }
 
         function addAdjustment(participantName, type) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
+            if (!canEdit()) return;
 
             const amountInput = document.getElementById('adjustmentAmount');
             const amount = parseFloat(amountInput.value);
 
             if (!amount || amount <= 0) {
-                showToast('Введите корректную сумму', 'warning');
+                showToast('Введите сумму', 'warning');
                 amountInput.focus();
                 return;
             }
@@ -2365,23 +2306,17 @@
 
             saveSession();
             showToast(type === 'deduction' ? 'Вычет добавлен' : 'Добавление сохранено', 'success');
-            
             showParticipantCalcModal(participantName);
             renderPerPerson();
         }
 
         function deleteAdjustment(participantName, index) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
+            if (!canEdit()) return;
             if (!state.participantAdjustments[participantName]) return;
 
             state.participantAdjustments[participantName].splice(index, 1);
             saveSession();
-            showToast('Корректировка удалена', 'success');
-            
+            showToast('Удалено', 'success');
             showParticipantCalcModal(participantName);
             renderPerPerson();
         }
@@ -2394,11 +2329,8 @@
                 return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
             }, 0);
 
-            if (totalAdjustment < 0) {
-                return { type: 'deduction', amount: Math.abs(totalAdjustment) };
-            } else if (totalAdjustment > 0) {
-                return { type: 'addition', amount: totalAdjustment };
-            }
+            if (totalAdjustment < 0) return { type: 'deduction', amount: Math.abs(totalAdjustment) };
+            if (totalAdjustment > 0) return { type: 'addition', amount: totalAdjustment };
             return null;
         }
 
@@ -2406,15 +2338,10 @@
             try {
                 const date = new Date(dateString);
                 return date.toLocaleString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
+                    day: '2-digit', month: '2-digit', year: '2-digit',
+                    hour: '2-digit', minute: '2-digit'
                 });
-            } catch (e) {
-                return '';
-            }
+            } catch (e) { return ''; }
         }
 
         // ============================================
@@ -2448,7 +2375,7 @@
                 </div>
             ` : `
                 <div class="form-group">
-                    <label>Количество человек для расчета:</label>
+                    <label>Количество человек:</label>
                     <input type="number" id="typePersonCount" class="input-field" min="1" 
                         value="${type ? type.personCount || state.participantCount || 1 : state.participantCount || 1}">
                 </div>
@@ -2458,9 +2385,9 @@
                 <h3>${isEdit ? 'Редактирование типа' : 'Добавление типа'}</h3>
                 <div class="modal-form">
                     <div class="form-group">
-                        <label>Название типа:</label>
+                        <label>Название:</label>
                         <input type="text" id="typeName" class="input-field" value="${type ? escapeHtml(type.name) : ''}" 
-                            placeholder="Например: Салаты, Горячее, Напитки">
+                            placeholder="Салаты, Горячее, Напитки">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -2475,7 +2402,7 @@
                     <div class="form-group">
                         <label>Норма кг на человека:</label>
                         <input type="number" id="typeNormKg" class="input-field" step="0.01" min="0" 
-                            value="${type ? type.normKg || '' : ''}" placeholder="Например: 0.3">
+                            value="${type ? type.normKg || '' : ''}" placeholder="0.3">
                     </div>
                     ${participantsHtml}
                     <div class="modal-actions">
@@ -2488,14 +2415,14 @@
             if (state.participants.length > 0) {
                 const forAllCheckbox = document.getElementById('typeForAll');
                 const participantCheckboxes = document.querySelectorAll('.type-participant');
-                
+
                 forAllCheckbox.addEventListener('change', function() {
                     participantCheckboxes.forEach(cb => {
                         cb.checked = this.checked;
                         cb.disabled = this.checked;
                     });
                 });
-                
+
                 if (forAllCheckbox.checked) {
                     participantCheckboxes.forEach(cb => cb.disabled = true);
                 }
@@ -2511,13 +2438,11 @@
             const normKg = parseFloat(document.getElementById('typeNormKg').value) || 0;
 
             if (!name) {
-                showToast('Введите название типа', 'warning');
+                showToast('Введите название', 'warning');
                 return;
             }
 
-            let forAll = true;
-            let participants = [];
-            let personCount = state.participantCount;
+            let forAll = true, participants = [], personCount = state.participantCount;
 
             if (state.participants.length > 0) {
                 forAll = document.getElementById('typeForAll').checked;
@@ -2544,30 +2469,23 @@
             saveSession();
             closeModal();
             render();
-            showToast(editId ? 'Тип обновлен' : 'Тип добавлен', 'success');
+            showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
         }
 
         function deleteType(typeId) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            if (!confirm('Удалить тип со всеми блюдами и ингредиентами?')) return;
+            if (!canEdit()) return;
+            if (!confirm('Удалить тип со всеми блюдами?')) return;
 
             const dishIds = state.dishes.filter(d => d.typeId === typeId).map(d => d.id);
             state.ingredients = state.ingredients.filter(i => !dishIds.includes(i.dishId) && i.typeId !== typeId);
             state.dishes = state.dishes.filter(d => d.typeId !== typeId);
             state.types = state.types.filter(t => t.id !== typeId);
 
-            dishIds.forEach(id => {
-                delete state.norms[id];
-                delete state.purchased[id];
-            });
+            dishIds.forEach(id => { delete state.norms[id]; delete state.purchased[id]; });
 
             saveSession();
             render();
-            showToast('Тип удален', 'success');
+            showToast('Удалено', 'success');
         }
 
         // ============================================
@@ -2582,7 +2500,7 @@
             const dish = editId ? state.dishes.find(d => d.id === editId) : null;
             const isEdit = !!dish;
 
-            const typesOptions = state.types.map(t => 
+            const typesOptions = state.types.map(t =>
                 `<option value="${t.id}" ${dish && dish.typeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
             ).join('');
 
@@ -2605,7 +2523,7 @@
                 </div>
             ` : `
                 <div class="form-group">
-                    <label>Количество человек для расчета:</label>
+                    <label>Количество человек:</label>
                     <input type="number" id="dishPersonCount" class="input-field" min="1" 
                         value="${dish ? dish.personCount || state.participantCount || 1 : state.participantCount || 1}">
                 </div>
@@ -2617,7 +2535,7 @@
                     <div class="form-group">
                         <label>Название:</label>
                         <input type="text" id="dishName" class="input-field" value="${dish ? escapeHtml(dish.name) : ''}" 
-                            placeholder="Например: Оливье, Шашлык">
+                            placeholder="Оливье, Шашлык">
                     </div>
                     <div class="form-group">
                         <label>Тип:</label>
@@ -2637,14 +2555,14 @@
             if (state.participants.length > 0) {
                 const forAllCheckbox = document.getElementById('dishForAll');
                 const participantCheckboxes = document.querySelectorAll('.dish-participant');
-                
+
                 forAllCheckbox.addEventListener('change', function() {
                     participantCheckboxes.forEach(cb => {
                         cb.checked = this.checked;
                         cb.disabled = this.checked;
                     });
                 });
-                
+
                 if (forAllCheckbox.checked) {
                     participantCheckboxes.forEach(cb => cb.disabled = true);
                 }
@@ -2658,13 +2576,11 @@
             const typeId = document.getElementById('dishType').value;
 
             if (!name) {
-                showToast('Введите название блюда', 'warning');
+                showToast('Введите название', 'warning');
                 return;
             }
 
-            let forAll = true;
-            let participants = [];
-            let personCount = state.participantCount;
+            let forAll = true, participants = [], personCount = state.participantCount;
 
             if (state.participants.length > 0) {
                 forAll = document.getElementById('dishForAll').checked;
@@ -2690,25 +2606,19 @@
 
                 if (state.participants.length > 0) {
                     state.norms[newDish.id] = {};
-                    state.participants.forEach(p => {
-                        state.norms[newDish.id][p] = 2;
-                    });
+                    state.participants.forEach(p => { state.norms[newDish.id][p] = 2; });
                 }
             }
 
             saveSession();
             closeModal();
             render();
-            showToast(editId ? 'Блюдо обновлено' : 'Блюдо добавлено', 'success');
+            showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
         }
 
         function deleteDish(dishId) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            if (!confirm('Удалить блюдо со всеми ингредиентами?')) return;
+            if (!canEdit()) return;
+            if (!confirm('Удалить блюдо?')) return;
 
             state.ingredients = state.ingredients.filter(i => i.dishId !== dishId);
             state.dishes = state.dishes.filter(d => d.id !== dishId);
@@ -2716,7 +2626,7 @@
 
             saveSession();
             render();
-            showToast('Блюдо удалено', 'success');
+            showToast('Удалено', 'success');
         }
 
         // ============================================
@@ -2732,19 +2642,17 @@
             const isEdit = !!ingredient;
 
             showModal(`
-                <h3>${isEdit ? 'Редактирование ингредиента' : 'Добавление ингредиента'}</h3>
+                <h3>${isEdit ? 'Редактирование' : 'Добавление'} ингредиента</h3>
                 <div class="modal-form">
                     <div class="form-group">
                         <label>Название:</label>
                         <input type="text" id="ingredientName" class="input-field" 
-                            value="${ingredient ? escapeHtml(ingredient.name) : ''}" 
-                            placeholder="Например: Картофель, Майонез">
+                            value="${ingredient ? escapeHtml(ingredient.name) : ''}" placeholder="Картофель, Майонез">
                     </div>
                     <div class="form-group">
                         <label>Магазин:</label>
                         <input type="text" id="ingredientShop" class="input-field" 
-                            value="${ingredient ? escapeHtml(ingredient.shop || '') : ''}" 
-                            placeholder="Например: Пятёрочка, Магнит">
+                            value="${ingredient ? escapeHtml(ingredient.shop || '') : ''}" placeholder="Пятёрочка, Магнит">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -2767,10 +2675,10 @@
                     <div class="form-group">
                         <label>Цена за единицу (руб.):</label>
                         <input type="number" id="ingredientPrice" class="input-field" step="0.01" min="0" 
-                            value="${ingredient ? ingredient.price : ''}" placeholder="100.00">
+                            value="${ingredient ? ingredient.price : ''}" placeholder="100">
                     </div>
                     <div class="form-group" style="background: var(--secondary); padding: 12px; border-radius: var(--radius);">
-                        <label style="font-weight: 600;">Итого: <span id="ingredientTotal" style="color: var(--primary); font-size: 1.2rem;">0.00</span> руб.</label>
+                        <label style="font-weight: 600;">Итого: <span id="ingredientTotal" style="color: var(--primary); font-size: 1.2rem;">0</span> руб.</label>
                     </div>
                     <div class="modal-actions">
                         <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
@@ -2799,15 +2707,8 @@
             const unit = document.getElementById('ingredientUnit').value;
             const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
 
-            if (!name) {
-                showToast('Введите название ингредиента', 'warning');
-                return;
-            }
-
-            if (quantity <= 0) {
-                showToast('Укажите количество', 'warning');
-                return;
-            }
+            if (!name) { showToast('Введите название', 'warning'); return; }
+            if (quantity <= 0) { showToast('Укажите количество', 'warning'); return; }
 
             if (editId) {
                 const index = state.ingredients.findIndex(i => i.id === editId);
@@ -2827,22 +2728,18 @@
             saveSession();
             closeModal();
             render();
-            showToast(editId ? 'Ингредиент обновлен' : 'Ингредиент добавлен', 'success');
+            showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
         }
 
         function deleteIngredient(ingredientId) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
+            if (!canEdit()) return;
             state.ingredients = state.ingredients.filter(i => i.id !== ingredientId);
             saveSession();
             render();
         }
 
         // ============================================
-        // RENDER FUNCTIONS
+        // RENDER
         // ============================================
         function render() {
             renderMainField();
@@ -2870,7 +2767,7 @@
                 html += `</div>`;
             });
 
-            main.innerHTML = html || '<p class="empty-message">Начните с добавления типа блюд или отдельного блюда</p>';
+            main.innerHTML = html || '<p class="empty-message">Начните с добавления типа или блюда</p>';
         }
 
         function renderType(type, editable) {
@@ -2895,29 +2792,18 @@
                 </div>
             `;
 
-            typeIngredients.forEach(ing => {
-                html += renderIngredient(ing, editable);
-            });
+            typeIngredients.forEach(ing => { html += renderIngredient(ing, editable); });
 
             if (typeIngredients.length > 0) {
                 const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
                 const perPerson = calculatePerPerson(total, type);
                 html += `
-                    <div class="total-row">
-                        <span>Итого за тип:</span>
-                        <span>${formatMoney(total)}</span>
-                    </div>
-                    <div class="per-each-row">
-                        <span>С каждого:</span>
-                        <span>${formatMoney(perPerson)}</span>
-                    </div>
+                    <div class="total-row"><span>Итого за тип:</span><span>${formatMoney(total)}</span></div>
+                    <div class="per-each-row"><span>С каждого:</span><span>${formatMoney(perPerson)}</span></div>
                 `;
             }
 
-            typeDishes.forEach(dish => {
-                html += renderDish(dish, editable);
-            });
-
+            typeDishes.forEach(dish => { html += renderDish(dish, editable); });
             return html;
         }
 
@@ -2928,9 +2814,7 @@
                 <div class="dish-row" onclick="${editable ? `showDishModal('${dish.id}')` : ''}">
                     <span class="dish-name">${escapeHtml(dish.name)}</span>
                     <div class="dish-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')" title="Участники">
-                            ${getParticipantsCount(dish)} чел.
-                        </button>
+                        <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')">${getParticipantsCount(dish)} чел.</button>
                         ${editable ? `
                             <button class="btn btn-add btn-small" onclick="showIngredientModal('dish', '${dish.id}')">+ Ингредиент</button>
                             <button class="btn btn-delete btn-small" onclick="deleteDish('${dish.id}')">Удалить</button>
@@ -2939,25 +2823,16 @@
                 </div>
             `;
 
-            dishIngredients.forEach(ing => {
-                html += renderIngredient(ing, editable);
-            });
+            dishIngredients.forEach(ing => { html += renderIngredient(ing, editable); });
 
             if (dishIngredients.length > 0) {
                 const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
                 const perPerson = calculatePerPersonForDish(dish, total);
                 html += `
-                    <div class="total-row">
-                        <span>Итого за блюдо:</span>
-                        <span>${formatMoney(total)}</span>
-                    </div>
-                    <div class="per-each-row">
-                        <span>С каждого:</span>
-                        <span>${formatMoney(perPerson)}</span>
-                    </div>
+                    <div class="total-row"><span>Итого за блюдо:</span><span>${formatMoney(total)}</span></div>
+                    <div class="per-each-row"><span>С каждого:</span><span>${formatMoney(perPerson)}</span></div>
                 `;
             }
-
             return html;
         }
 
@@ -2969,8 +2844,8 @@
                     <span class="ingredient-quantity">${ing.quantity} ${ing.unit}</span>
                     <span class="ingredient-price">${formatMoney(ing.price)}</span>
                     <span class="ingredient-price">${formatMoney(total)}</span>
-                    <span class="ingredient-shop">${escapeHtml(ing.shop || '—')}</span>
-                    ${editable ? `<button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">×</button>` : '<span></span>'}
+                    <span class="ingredient-shop">${escapeHtml(ing.shop || '-')}</span>
+                    ${editable ? `<button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">X</button>` : '<span></span>'}
                 </div>
             `;
         }
@@ -2989,20 +2864,16 @@
 
             let info = '';
             if (state.participants.length > 0) {
-                if (dish.forAll) {
-                    info = 'Для всех участников:\n' + state.participants.join(', ');
-                } else {
-                    info = 'Для: ' + (dish.participants && dish.participants.length > 0 ? dish.participants.join(', ') : 'никого не выбрано');
-                }
+                if (dish.forAll) info = 'Для всех: ' + state.participants.join(', ');
+                else info = 'Для: ' + (dish.participants?.length > 0 ? dish.participants.join(', ') : 'никого');
             } else {
-                info = 'Количество человек: ' + (dish.personCount || state.participantCount || 'не указано');
+                info = 'Количество: ' + (dish.personCount || state.participantCount || 'не указано');
             }
-
             alert(info);
         }
 
         // ============================================
-        // CALCULATION FUNCTIONS
+        // CALCULATIONS
         // ============================================
         function getNormValue(dishId, participant) {
             if (state.norms[dishId] && state.norms[dishId][participant] !== undefined) {
@@ -3013,10 +2884,8 @@
 
         function calculatePerPerson(total, entity) {
             if (state.participants.length > 0) {
-                if (entity.forAll) {
-                    return total / state.participants.length;
-                }
-                return entity.participants && entity.participants.length > 0 ? total / entity.participants.length : total;
+                if (entity.forAll) return total / state.participants.length;
+                return entity.participants?.length > 0 ? total / entity.participants.length : total;
             }
             return entity.personCount > 0 ? total / entity.personCount : total;
         }
@@ -3024,21 +2893,69 @@
         function calculatePerPersonForDish(dish, total) {
             if (state.participants.length > 0) {
                 let totalMultiplier = 0;
-
                 state.participants.forEach(p => {
                     const normValue = getNormValue(dish.id, p);
-                    if (normValue === 2) {
-                        totalMultiplier += 1;
-                    } else if (normValue === 1) {
-                        totalMultiplier += 0.5;
-                    }
+                    if (normValue === 2) totalMultiplier += 1;
+                    else if (normValue === 1) totalMultiplier += 0.5;
                 });
-
                 if (totalMultiplier === 0) return 0;
                 return total / totalMultiplier;
             }
-
             return dish.personCount > 0 ? total / dish.personCount : total;
+        }
+
+        function calculatePersonDishKg(dish, participant, type) {
+            if (!type || !type.normKg) return { kg: 0, percent: 0 };
+
+            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+            const dishNormValue = getNormValue(dish.id, participant);
+            if (dishNormValue === 0) return { kg: 0, percent: 0 };
+
+            let totalWeight = 0;
+            const dishWeights = {};
+
+            typeDishes.forEach(d => {
+                const normValue = getNormValue(d.id, participant);
+                const weight = normValue === 2 ? 2 : normValue === 1 ? 1 : 0;
+                dishWeights[d.id] = weight;
+                totalWeight += weight;
+            });
+
+            if (totalWeight === 0) return { kg: 0, percent: 0 };
+
+            const calories = state.participantCalories[participant] || 2000;
+            const personalMultiplier = calories / 2000;
+            const personTypeNorm = type.normKg * personalMultiplier;
+            const dishWeight = dishWeights[dish.id];
+            const percent = (dishWeight / totalWeight) * 100;
+            const kg = personTypeNorm * (dishWeight / totalWeight);
+
+            return { kg, percent };
+        }
+
+        function calculatePersonTypeKg(type, participant) {
+            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+            let total = 0;
+            typeDishes.forEach(dish => {
+                const kgData = calculatePersonDishKg(dish, participant, type);
+                total += kgData.kg;
+            });
+            return total;
+        }
+
+        function calculateTypeTotalKg(type) {
+            let total = 0;
+            state.participants.forEach(p => { total += calculatePersonTypeKg(type, p); });
+            return total;
+        }
+
+        function calculateDishTotalKg(dish, type) {
+            let total = 0;
+            state.participants.forEach(p => {
+                const kgData = calculatePersonDishKg(dish, p, type);
+                total += kgData.kg;
+            });
+            return total;
         }
 
         function calculatePerParticipant() {
@@ -3060,13 +2977,8 @@
 
                     participants.forEach(p => {
                         const normValue = getNormValue(dish.id, p);
-                        if (normValue === 2) {
-                            participantMultipliers[p] = 1;
-                            totalMultiplier += 1;
-                        } else if (normValue === 1) {
-                            participantMultipliers[p] = 0.5;
-                            totalMultiplier += 0.5;
-                        }
+                        if (normValue === 2) { participantMultipliers[p] = 1; totalMultiplier += 1; }
+                        else if (normValue === 1) { participantMultipliers[p] = 0.5; totalMultiplier += 0.5; }
                     });
 
                     if (totalMultiplier > 0) {
@@ -3089,9 +3001,7 @@
                     if (participants.length > 0) {
                         const perPerson = total / participants.length;
                         participants.forEach(p => {
-                            if (perParticipant[p] !== undefined) {
-                                perParticipant[p] += perPerson;
-                            }
+                            if (perParticipant[p] !== undefined) perParticipant[p] += perPerson;
                         });
                     }
                 }
@@ -3126,17 +3036,10 @@
                         }, 0);
                         const finalAmount = amount + totalAdjustment;
 
-                        let badgeHtml = '';
-                        let finalHtml = '';
-
+                        let badgeHtml = '', finalHtml = '';
                         if (adjustmentStatus) {
-                            badgeHtml = `<span class="per-person-badge ${adjustmentStatus.type}">
-                                ${adjustmentStatus.type === 'deduction' ? '➖ Есть вычет' : '➕ Есть добавление'}
-                            </span>`;
-                            finalHtml = `<div class="per-person-final">
-                                <span>Итого к оплате:</span>
-                                <span class="per-person-final-amount">${formatMoney(finalAmount)}</span>
-                            </div>`;
+                            badgeHtml = `<span class="per-person-badge ${adjustmentStatus.type}">${adjustmentStatus.type === 'deduction' ? 'Есть вычет' : 'Есть добавление'}</span>`;
+                            finalHtml = `<div class="per-person-final"><span>Итого:</span><span class="per-person-final-amount">${formatMoney(finalAmount)}</span></div>`;
                         }
 
                         return `
@@ -3145,27 +3048,16 @@
                                     <span class="per-person-name">${escapeHtml(name)}</span>
                                     <span class="per-person-amount">${formatMoney(amount)}</span>
                                 </div>
-                                ${badgeHtml}
-                                ${finalHtml}
+                                ${badgeHtml}${finalHtml}
                             </div>
                         `;
-                    }).join('') +
-                '</div>';
+                    }).join('') + '</div>';
             } else {
                 const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
                 const contingency = calculateContingency();
                 const totalCost = baseCost + contingency;
                 const perPerson = state.participantCount > 0 ? totalCost / state.participantCount : totalCost;
-                list.innerHTML = `
-                    <div class="per-person-list">
-                        <div class="per-person-item" style="cursor: default;">
-                            <div class="per-person-top">
-                                <span class="per-person-name">С каждого участника</span>
-                                <span class="per-person-amount">${formatMoney(perPerson)}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                list.innerHTML = `<div class="per-person-list"><div class="per-person-item" style="cursor:default;"><div class="per-person-top"><span class="per-person-name">С каждого</span><span class="per-person-amount">${formatMoney(perPerson)}</span></div></div></div>`;
             }
         }
 
@@ -3188,73 +3080,112 @@
 
             state.participants.forEach(p => {
                 const calories = state.participantCalories[p] || 2000;
-                html += `<th class="participant-header">${escapeHtml(p)}</th>`;
+                html += `
+                    <th class="participant-header">
+                        <div>${escapeHtml(p)}</div>
+                        <div class="calorie-input">
+                            <input type="number" value="${calories}" min="1000" max="5000" step="100" 
+                                onchange="updateCalories('${escapeHtml(p)}', this.value)" 
+                                title="Калории" ${!editable ? 'disabled' : ''}>
+                            <div class="norm-kg">${(calories * 0.6 / 1000).toFixed(2)} кг/день</div>
+                        </div>
+                    </th>
+                `;
             });
 
-            html += '<th>Итого</th></tr></thead><tbody>';
+            html += '<th>Итого кг</th></tr></thead><tbody>';
 
             state.types.forEach(type => {
                 const typeDishes = state.dishes.filter(d => d.typeId === type.id);
                 if (typeDishes.length > 0) {
-                    html += `
-                        <tr class="type-header-row" style="background: ${type.color}22;">
-                            <td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">
-                                ${escapeHtml(type.name)}
-                            </td>
-                        </tr>
-                    `;
-
-                    typeDishes.forEach(dish => {
-                        html += renderNormRow(dish, editable);
-                    });
+                    html += `<tr class="type-header-row" style="background: ${type.color}22;"><td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">${escapeHtml(type.name)} <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">(норма: ${type.normKg || 0} кг/чел)</span></td></tr>`;
+                    typeDishes.forEach(dish => { html += renderNormRow(dish, type, editable); });
+                    html += renderTypeSubtotalRow(type);
                 }
             });
 
             const dishesWithoutType = state.dishes.filter(d => !d.typeId);
             if (dishesWithoutType.length > 0) {
-                html += `
-                    <tr class="type-header-row">
-                        <td colspan="${state.participants.length + 2}" style="font-weight: 600; text-align: left; padding: 12px;">
-                            Без категории
-                        </td>
-                    </tr>
-                `;
-                dishesWithoutType.forEach(dish => {
-                    html += renderNormRow(dish, editable);
-                });
+                html += `<tr class="type-header-row"><td colspan="${state.participants.length + 2}" style="font-weight: 600; text-align: left; padding: 12px;">Без категории</td></tr>`;
+                dishesWithoutType.forEach(dish => { html += renderNormRow(dish, null, editable); });
             }
 
             html += '</tbody></table>';
+            html += renderTypeSummary();
             container.innerHTML = html;
         }
 
-        function renderNormRow(dish, editable) {
-            let html = `<tr>
-                <td style="text-align: left; font-weight: 500; padding-left: 24px;">
-                    ${escapeHtml(dish.name)}
-                </td>`;
+        function renderNormRow(dish, type, editable) {
+            const bgColor = type ? type.color + '08' : 'transparent';
+
+            let html = `<tr style="background: ${bgColor};"><td style="text-align: left; font-weight: 500; padding-left: 24px;">${escapeHtml(dish.name)}</td>`;
 
             state.participants.forEach(p => {
                 const normValue = getNormValue(dish.id, p);
+                const kgData = calculatePersonDishKg(dish, p, type);
                 const selectStyle = getSelectStyle(normValue);
 
                 html += `
-                    <td>
-                        <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" 
-                            style="${selectStyle}"
-                            ${!editable ? 'disabled' : ''}>
+                    <td style="vertical-align: top;">
+                        <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" style="${selectStyle}" ${!editable ? 'disabled' : ''}>
                             <option value="0" ${normValue === 0 ? 'selected' : ''}>Не буду</option>
                             <option value="1" ${normValue === 1 ? 'selected' : ''}>Возможно</option>
                             <option value="2" ${normValue === 2 ? 'selected' : ''}>Буду</option>
                         </select>
+                        <div class="norm-details" style="margin-top: 4px; font-size: 0.75rem;">
+                            <div style="font-weight: 500;">${kgData.kg.toFixed(3)} кг</div>
+                            <div style="color: var(--text-secondary); font-size: 0.7rem;">${kgData.percent > 0 ? Math.round(kgData.percent) + '%' : '-'}</div>
+                        </div>
                     </td>
                 `;
             });
 
-            const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
-            const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            const dishTotalKg = calculateDishTotalKg(dish, type);
+            html += `<td><strong style="color: var(--primary);">${dishTotalKg.toFixed(2)}</strong><div style="font-size: 0.7rem; color: var(--text-secondary);">кг</div></td></tr>`;
+            return html;
+        }
 
-            html += `<td><strong>${formatMoney(total)}</strong></td></tr>`;
+        function renderTypeSubtotalRow(type) {
+            let html = `<tr style="background: ${type.color}15; font-weight: 500;"><td style="text-align: right; padding-right: 16px;">Итого ${escapeHtml(type.name)}:</td>`;
+            let grandTotal = 0;
+
+            state.participants.forEach(p => {
+                const personTypeKg = calculatePersonTypeKg(type, p);
+                grandTotal += personTypeKg;
+                html += `<td style="color: ${type.color};">${personTypeKg.toFixed(3)} кг</td>`;
+            });
+
+            html += `<td><strong style="color: ${type.color};">${grandTotal.toFixed(2)} кг</strong></td></tr>`;
+            return html;
+        }
+
+        function renderTypeSummary() {
+            if (state.types.length === 0) return '';
+
+            let html = '<div style="margin-top: 20px;"><h4 style="margin-bottom: 12px;">Сводка по типам</h4><div class="per-person-list">';
+
+            state.types.forEach(type => {
+                const typeTotal = calculateTypeTotalKg(type);
+                const expectedTotal = (type.normKg || 0) * state.participants.length;
+                const diff = typeTotal - expectedTotal;
+                const diffText = expectedTotal > 0 ? `(${diff >= 0 ? '+' : ''}${diff.toFixed(2)} от нормы)` : '';
+                const diffColor = diff >= 0 ? 'var(--success)' : 'var(--warning)';
+
+                html += `
+                    <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color}; cursor: default;">
+                        <div class="per-person-top">
+                            <span class="per-person-name">${escapeHtml(type.name)}</span>
+                            <span class="per-person-amount" style="color: ${type.color};">${typeTotal.toFixed(2)} кг</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            Норма: ${type.normKg || 0} кг x ${state.participants.length} = ${expectedTotal.toFixed(2)} кг
+                            <span style="color: ${diffColor}; margin-left: 8px;">${diffText}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
             return html;
         }
 
@@ -3266,11 +3197,15 @@
 
         function updateNorm(dishId, participant, value) {
             if (!canEdit()) return;
-
-            if (!state.norms[dishId]) {
-                state.norms[dishId] = {};
-            }
+            if (!state.norms[dishId]) state.norms[dishId] = {};
             state.norms[dishId][participant] = parseInt(value);
+            saveSession();
+            render();
+        }
+
+        function updateCalories(participant, value) {
+            if (!canEdit()) return;
+            state.participantCalories[participant] = parseInt(value) || 2000;
             saveSession();
             render();
         }
@@ -3283,7 +3218,7 @@
             const editable = canEdit();
 
             if (state.ingredients.length === 0) {
-                container.innerHTML = '<p class="empty-message">Добавьте ингредиенты для формирования списка покупок</p>';
+                container.innerHTML = '<p class="empty-message">Добавьте ингредиенты</p>';
                 document.getElementById('purchasedCount').textContent = '0';
                 document.getElementById('totalCount').textContent = '0';
                 document.getElementById('progressFill').style.width = '0%';
@@ -3294,15 +3229,7 @@
             state.ingredients.forEach(ing => {
                 const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
                 if (!grouped[key]) {
-                    grouped[key] = {
-                        id: key,
-                        name: ing.name,
-                        shop: ing.shop,
-                        unit: ing.unit,
-                        quantity: 0,
-                        totalPrice: 0,
-                        sources: []
-                    };
+                    grouped[key] = { id: key, name: ing.name, shop: ing.shop, unit: ing.unit, quantity: 0, totalPrice: 0, sources: [] };
                 }
                 grouped[key].quantity += ing.quantity;
                 grouped[key].totalPrice += ing.quantity * ing.price;
@@ -3325,15 +3252,7 @@
             document.getElementById('totalCount').textContent = totalCount;
             document.getElementById('progressFill').style.width = totalCount > 0 ? `${(purchasedCount / totalCount) * 100}%` : '0%';
 
-            let html = `
-                <div class="shopping-item shopping-header">
-                    <span></span>
-                    <span>Название</span>
-                    <span>Количество</span>
-                    <span>Магазин</span>
-                    <span>Стоимость</span>
-                </div>
-            `;
+            let html = `<div class="shopping-item shopping-header"><span></span><span>Название</span><span>Кол-во</span><span>Магазин</span><span>Цена</span></div>`;
 
             items.sort((a, b) => {
                 const aPurchased = state.purchased[a.id] ? 1 : 0;
@@ -3342,26 +3261,17 @@
                 return a.name.localeCompare(b.name, 'ru');
             });
 
-            items.forEach((item) => {
+            items.forEach(item => {
                 const isPurchased = state.purchased[item.id];
                 const sourcesText = [...new Set(item.sources)].join(', ');
                 const escapedId = item.id.replace(/'/g, "\\'");
 
                 html += `
                     <div class="shopping-item ${isPurchased ? 'purchased' : ''}">
-                        <input type="checkbox" class="shopping-checkbox" 
-                            ${isPurchased ? 'checked' : ''} 
-                            onchange="togglePurchased('${escapedId}')"
-                            ${!editable ? 'disabled' : ''}
-                            title="Отметить как купленное">
-                        <div class="shopping-item-name">
-                            ${escapeHtml(item.name)}
-                            <div style="font-size: 0.7rem; color: var(--text-secondary); font-weight: normal;">
-                                ${escapeHtml(sourcesText)}
-                            </div>
-                        </div>
+                        <input type="checkbox" class="shopping-checkbox" ${isPurchased ? 'checked' : ''} onchange="togglePurchased('${escapedId}')" ${!editable ? 'disabled' : ''}>
+                        <div class="shopping-item-name">${escapeHtml(item.name)}<div style="font-size: 0.7rem; color: var(--text-secondary);">${escapeHtml(sourcesText)}</div></div>
                         <span class="shopping-item-quantity">${formatQuantity(item.quantity, item.unit)}</span>
-                        <span class="shopping-item-shop">${escapeHtml(item.shop || '—')}</span>
+                        <span class="shopping-item-shop">${escapeHtml(item.shop || '-')}</span>
                         <span class="shopping-item-price">${formatMoney(item.totalPrice)}</span>
                     </div>
                 `;
@@ -3370,22 +3280,13 @@
             const grandTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
             const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
 
-            html += `
-                <div class="shopping-item shopping-total">
-                    <span></span>
-                    <span>ИТОГО</span>
-                    <span>${totalCount} поз.</span>
-                    <span>Куплено: ${formatMoney(purchasedTotal)}</span>
-                    <span class="shopping-item-price">${formatMoney(grandTotal)}</span>
-                </div>
-            `;
+            html += `<div class="shopping-item shopping-total"><span></span><span>ИТОГО</span><span>${totalCount} поз.</span><span>Куплено: ${formatMoney(purchasedTotal)}</span><span class="shopping-item-price">${formatMoney(grandTotal)}</span></div>`;
 
             container.innerHTML = html;
         }
 
         function togglePurchased(itemId) {
             if (!canEdit()) return;
-
             state.purchased[itemId] = !state.purchased[itemId];
             saveSession();
             renderShoppingList();
@@ -3393,9 +3294,7 @@
         }
 
         function formatQuantity(quantity, unit) {
-            if (unit === 'шт' || unit === 'уп') {
-                return `${Math.ceil(quantity)} ${unit}`;
-            }
+            if (unit === 'шт' || unit === 'уп') return `${Math.ceil(quantity)} ${unit}`;
             return `${quantity.toFixed(2)} ${unit}`;
         }
 
@@ -3423,9 +3322,7 @@
             const items = Object.values(grouped);
             const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
 
-            const contingencyText = state.contingency.type === 'percent' 
-                ? `${state.contingency.value}% от суммы`
-                : 'Фиксированная сумма';
+            const contingencyText = state.contingency.type === 'percent' ? `${state.contingency.value}%` : 'Фикс.';
 
             container.innerHTML = `
                 <div class="summary-grid">
@@ -3435,13 +3332,13 @@
                     </div>
                     <div class="summary-card contingency ${editable ? 'clickable' : ''}" onclick="${editable ? 'showContingencyModal()' : ''}">
                         <div class="summary-value">${formatMoney(contingency)}</div>
-                        <div class="summary-label">Непредвиденные расходы</div>
+                        <div class="summary-label">Непредвиденные</div>
                         ${state.contingency.value > 0 ? `<div class="summary-hint">${contingencyText}</div>` : ''}
-                        ${editable ? '<div class="summary-hint">Нажмите, чтобы изменить</div>' : ''}
+                        ${editable ? '<div class="summary-hint">Нажмите для изменения</div>' : ''}
                     </div>
                     <div class="summary-card">
                         <div class="summary-value">${formatMoney(perPerson)}</div>
-                        <div class="summary-label">С каждого (~${participantsCount} чел.)</div>
+                        <div class="summary-label">С каждого (${participantsCount} чел.)</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-value">${totalDishes}</div>
@@ -3449,18 +3346,18 @@
                     </div>
                     <div class="summary-card" style="border: 2px solid var(--success);">
                         <div class="summary-value" style="color: var(--success);">${formatMoney(purchasedTotal)}</div>
-                        <div class="summary-label">Уже куплено</div>
+                        <div class="summary-label">Куплено</div>
                     </div>
                     <div class="summary-card" style="border: 2px solid var(--warning);">
                         <div class="summary-value" style="color: var(--warning);">${formatMoney(totalCost - purchasedTotal)}</div>
-                        <div class="summary-label">Осталось купить</div>
+                        <div class="summary-label">Осталось</div>
                     </div>
                 </div>
             `;
         }
 
         // ============================================
-        // UTILITY FUNCTIONS
+        // UTILITIES
         // ============================================
         function escapeHtml(text) {
             if (!text) return '';
@@ -3470,30 +3367,17 @@
         }
 
         function formatMoney(amount) {
-            return new Intl.NumberFormat('ru-RU', {
-                style: 'currency',
-                currency: 'RUB',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 2
-            }).format(amount);
+            return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
         }
 
         function formatDate(dateString) {
             try {
-                const date = new Date(dateString);
-                return date.toLocaleDateString('ru-RU', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric'
-                });
-            } catch (e) {
-                return '';
-            }
+                return new Date(dateString).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+            } catch (e) { return ''; }
         }
 
         function pluralize(n, one, few, many) {
-            const mod10 = n % 10;
-            const mod100 = n % 100;
+            const mod10 = n % 10, mod100 = n % 100;
             if (mod100 >= 11 && mod100 <= 19) return many;
             if (mod10 === 1) return one;
             if (mod10 >= 2 && mod10 <= 4) return few;
@@ -3515,7 +3399,6 @@
             toast.className = `toast ${type}`;
             toast.textContent = message;
             container.appendChild(toast);
-
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(100px)';
