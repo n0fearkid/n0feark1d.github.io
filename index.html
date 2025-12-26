@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Смета застолья от Михаилна Бублека</title>
+    <title>Смета застолья</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -22,6 +27,7 @@
             --success-light: #7ce992;
             --danger: #e74c3c;
             --warning: #f0ad4e;
+            --info: #5bc0de;
             --bg-main: #FDFDFE;
             --bg-card: #FDFDFE;
             --bg-input: #ffffff;
@@ -58,6 +64,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         @keyframes checkmark {
             0% { transform: scale(0); }
             50% { transform: scale(1.2); }
@@ -65,6 +76,7 @@
         }
 
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .pulse { animation: pulse 2s infinite; }
 
         .container { max-width: 1200px; margin: 0 auto; }
 
@@ -123,12 +135,71 @@
             margin-top: 4px;
         }
 
-        .section-header { margin-bottom: 16px; }
+        .section-header { 
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
 
         .section-subtitle {
             color: var(--text-secondary);
             font-size: 0.85rem;
             margin-top: 4px;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: var(--secondary);
+        }
+
+        .sync-status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .sync-status.syncing {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .sync-status.syncing .sync-dot {
+            animation: pulse 1s infinite;
+        }
+
+        .readonly-banner {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .readonly-banner .icon {
+            font-size: 1.2rem;
         }
 
         .btn {
@@ -149,6 +220,7 @@
 
         .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         .btn-primary {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
@@ -156,14 +228,14 @@
             box-shadow: 0 2px 8px rgba(232, 93, 108, 0.3);
         }
 
-        .btn-primary:hover { box-shadow: 0 4px 12px rgba(232, 93, 108, 0.4); }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(232, 93, 108, 0.4); }
 
         .btn-secondary {
             background: var(--secondary);
             color: var(--text-primary);
         }
 
-        .btn-secondary:hover { background: var(--secondary-hover); }
+        .btn-secondary:hover:not(:disabled) { background: var(--secondary-hover); }
 
         .btn-success {
             background: linear-gradient(135deg, var(--success) 0%, #4a9d4a 100%);
@@ -185,7 +257,7 @@
             padding: 6px 10px;
         }
 
-        .btn-delete:hover { background: #c0392b; }
+        .btn-delete:hover:not(:disabled) { background: #c0392b; }
 
         .btn-back {
             background: rgba(0, 0, 0, 0.06);
@@ -203,7 +275,7 @@
             padding: 6px 10px;
         }
 
-        .btn-ghost:hover {
+        .btn-ghost:hover:not(:disabled) {
             background: rgba(0, 0, 0, 0.05);
             color: var(--text-primary);
         }
@@ -211,6 +283,11 @@
         .btn-warning {
             background: linear-gradient(135deg, var(--warning) 0%, #e09b3d 100%);
             color: var(--text-primary);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, var(--info) 0%, #46a5bf 100%);
+            color: var(--text-light);
         }
 
         .participants-section {
@@ -251,6 +328,11 @@
             box-shadow: 0 0 0 3px rgba(232, 93, 108, 0.1);
         }
 
+        .participants-section textarea:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
         .toolbar {
             display: flex;
             gap: 12px;
@@ -272,6 +354,11 @@
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(232, 93, 108, 0.1);
+        }
+
+        .input-field:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
         }
 
         .main-field {
@@ -304,6 +391,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .type-badge {
@@ -521,6 +609,11 @@
             border-color: var(--primary);
         }
 
+        .norms-table input[type="number"]:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
         .norms-table select {
             padding: 6px 8px;
             border: 1px solid var(--border);
@@ -535,6 +628,11 @@
         .norms-table select:focus {
             outline: none;
             border-color: var(--primary);
+        }
+
+        .norms-table select:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
         }
 
         .norm-kg {
@@ -638,6 +736,7 @@
         }
 
         .shopping-checkbox:checked { animation: checkmark 0.3s ease; }
+        .shopping-checkbox:disabled { cursor: not-allowed; }
 
         .shopping-item-name {
             font-weight: 500;
@@ -671,7 +770,7 @@
 
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 16px;
         }
 
@@ -690,8 +789,16 @@
             box-shadow: var(--shadow-lg);
         }
 
+        .summary-card.clickable {
+            cursor: pointer;
+        }
+
+        .summary-card.clickable:hover {
+            border-color: var(--primary);
+        }
+
         .summary-value {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
             color: var(--primary);
             margin-bottom: 4px;
@@ -702,6 +809,12 @@
             color: var(--text-secondary);
         }
 
+        .summary-hint {
+            font-size: 0.7rem;
+            color: var(--info);
+            margin-top: 4px;
+        }
+
         .summary-card.highlight {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
             border: none;
@@ -710,39 +823,104 @@
         .summary-card.highlight .summary-value,
         .summary-card.highlight .summary-label { color: var(--text-light); }
 
-        .session-code-section { background: var(--bg-card); }
+        .summary-card.contingency {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid var(--info);
+        }
 
-        .session-code-container {
+        .summary-card.contingency .summary-value {
+            color: #1976d2;
+        }
+
+        .session-link-section { background: var(--bg-card); }
+
+        .session-link-container {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
-        .session-code-textarea {
-            width: 100%;
-            min-height: 100px;
-            max-height: 200px;
-            padding: 14px;
+        .session-link-input {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .session-link-input input {
+            flex: 1;
+            padding: 12px 16px;
             border: 2px solid var(--border);
             border-radius: var(--radius);
             font-family: 'Courier New', monospace;
-            font-size: 0.7rem;
-            line-height: 1.4;
-            resize: vertical;
+            font-size: 0.85rem;
             background: #f8f9fa;
-            color: var(--text-primary);
-            word-break: break-all;
         }
 
-        .session-code-textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .session-code-actions {
+        .session-link-actions {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
+        }
+
+        .owner-controls {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-top: 16px;
+            border: 1px solid #a5d6a7;
+        }
+
+        .owner-controls h4 {
+            margin-bottom: 12px;
+            color: #2e7d32;
+            font-size: 0.95rem;
+        }
+
+        .owner-controls .control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            display: none;
+        }
+
+        .toggle-slider {
+            width: 48px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 24px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: var(--transition);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--success);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(24px);
         }
 
         .import-session {
@@ -753,12 +931,12 @@
 
         .import-textarea {
             width: 100%;
-            min-height: 80px;
+            min-height: 60px;
             padding: 14px;
             border: 2px solid var(--border);
             border-radius: var(--radius);
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
+            font-family: inherit;
+            font-size: 0.9rem;
             resize: vertical;
             background: var(--bg-input);
             transition: var(--transition);
@@ -768,14 +946,6 @@
             outline: none;
             border-color: var(--success);
             box-shadow: 0 0 0 3px rgba(92, 184, 92, 0.1);
-        }
-
-        .session-page {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            max-width: 700px;
-            margin: 0 auto;
         }
 
         .sessions-list {
@@ -811,10 +981,11 @@
 
         .session-name { font-weight: 600; font-size: 1rem; }
         .session-date { font-size: 0.8rem; color: var(--text-secondary); }
+        .session-owner { font-size: 0.75rem; color: var(--info); }
         .session-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-        .create-session { display: flex; gap: 12px; }
-        .create-session input { flex: 1; }
+        .create-session { display: flex; gap: 12px; flex-wrap: wrap; }
+        .create-session input { flex: 1; min-width: 200px; }
 
         .empty-message {
             color: var(--text-secondary);
@@ -949,6 +1120,45 @@
             padding: 2px;
         }
 
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            padding: 12px;
+            background: var(--bg-input);
+            border-radius: var(--radius);
+            border: 2px solid var(--border);
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .radio-option input {
+            accent-color: var(--primary);
+        }
+
+        .contingency-preview {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            padding: 16px;
+            border-radius: var(--radius);
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        .contingency-preview .label {
+            font-size: 0.85rem;
+            color: #1976d2;
+        }
+
+        .contingency-preview .value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1565c0;
+        }
+
         .toast-container {
             position: fixed;
             bottom: 24px;
@@ -972,12 +1182,6 @@
         .toast.error { background: var(--danger); }
         .toast.warning { background: var(--warning); color: var(--text-primary); }
 
-        .dragging { opacity: 0.5; transform: scale(0.98); }
-        .drag-over { border-top: 3px solid var(--primary) !important; }
-
-        .hidden { display: none !important; }
-
-        /* Стили для модального окна расчёта */
         .calc-current {
             background: linear-gradient(135deg, var(--secondary) 0%, #d8d6cf 100%);
             padding: 16px;
@@ -1091,6 +1295,41 @@
             color: var(--text-secondary);
         }
 
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .hidden { display: none !important; }
+
         @media (max-width: 768px) {
             body { padding: 12px; }
             header { padding: 16px; }
@@ -1104,8 +1343,9 @@
             .form-row { grid-template-columns: 1fr; }
             .per-person-list { grid-template-columns: 1fr; }
             .summary-grid { grid-template-columns: 1fr 1fr; }
-            .session-code-actions { flex-direction: column; }
-            .session-code-actions .btn { width: 100%; }
+            .session-link-input { flex-direction: column; }
+            .session-link-actions { flex-direction: column; }
+            .session-link-actions .btn { width: 100%; }
             .calc-input-group { flex-direction: column; }
             .calc-input-group .btn { width: 100%; }
         }
@@ -1113,16 +1353,23 @@
         @media (max-width: 480px) {
             .shopping-item { grid-template-columns: auto 1fr; gap: 8px; }
             .shopping-item-price { grid-column: 2; }
+            .summary-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Загрузка...</div>
+    </div>
+
     <div class="container">
         <!-- ========== СТРАНИЦА СЕССИЙ ========== -->
-        <div id="sessionsPage">
+        <div id="sessionsPage" class="hidden">
             <div class="card fade-in">
-                <h1>Смета застолья от Михаилна Бублека</h1>
-                <p class="subtitle">Планируйте праздники легко</p>
+                <h1>🎉 Смета застолья</h1>
+                <p class="subtitle">Планируйте праздники легко с облачной синхронизацией</p>
             </div>
 
             <div class="card fade-in">
@@ -1139,10 +1386,10 @@
             </div>
 
             <div class="card fade-in">
-                <h2>Войти по коду сессии</h2>
+                <h2>Присоединиться по ссылке</h2>
                 <div class="import-session">
-                    <textarea id="importCode" class="import-textarea" placeholder="Вставьте код сессии сюда..."></textarea>
-                    <button class="btn btn-success" onclick="importSession()">Импортировать</button>
+                    <input type="text" id="joinSessionLink" class="input-field" placeholder="Вставьте ссылку на сессию">
+                    <button class="btn btn-success" onclick="joinByLink()">Присоединиться</button>
                 </div>
             </div>
         </div>
@@ -1152,16 +1399,25 @@
             <header class="fade-in">
                 <div class="header-top">
                     <button class="btn btn-back" onclick="goToSessions()">← Назад</button>
-                    <h1 id="sessionTitle">Смета застолья от Михаилна Бублека</h1>
+                    <h1 id="sessionTitle">Смета застолья</h1>
+                    <div id="syncStatus" class="sync-status online">
+                        <span class="sync-dot"></span>
+                        <span class="sync-text">Подключено</span>
+                    </div>
+                </div>
+
+                <div id="readonlyBanner" class="readonly-banner hidden">
+                    <span class="icon">🔒</span>
+                    <span>Режим просмотра. Только владелец может редактировать эту сессию.</span>
                 </div>
 
                 <div class="participants-section">
                     <label>Участники:</label>
                     <textarea id="participantsInput" placeholder="Введите имена через запятую или число участников"></textarea>
-                    <button class="btn btn-secondary" onclick="applyParticipants()">Применить</button>
+                    <button class="btn btn-secondary" id="applyParticipantsBtn" onclick="applyParticipants()">Применить</button>
                 </div>
 
-                <div class="toolbar">
+                <div class="toolbar" id="mainToolbar">
                     <button class="btn btn-primary" onclick="showTypeModal()">+ Добавить тип</button>
                     <button class="btn btn-primary" onclick="showDishModal()">+ Добавить блюдо</button>
                 </div>
@@ -1203,16 +1459,29 @@
                 <div id="summaryContent"></div>
             </section>
 
-            <section class="session-code-section card fade-in">
+            <section class="session-link-section card fade-in">
                 <div class="section-header">
-                    <h3>Код сессии</h3>
-                    <p class="section-subtitle">Скопируйте код для сохранения или передачи другим участникам</p>
+                    <h3>🔗 Ссылка на сессию</h3>
+                    <p class="section-subtitle">Поделитесь ссылкой с участниками для совместного редактирования</p>
                 </div>
-                <div class="session-code-container">
-                    <textarea id="sessionCodeArea" class="session-code-textarea" readonly></textarea>
-                    <div class="session-code-actions">
-                        <button class="btn btn-primary" onclick="copySessionCode()">📋 Копировать код</button>
-                        <button class="btn btn-secondary" onclick="downloadSessionCode()">💾 Скачать файл</button>
+                <div class="session-link-container">
+                    <div class="session-link-input">
+                        <input type="text" id="sessionLinkInput" readonly>
+                        <button class="btn btn-primary" onclick="copySessionLink()">📋 Копировать</button>
+                    </div>
+                    <div class="session-link-actions">
+                        <button class="btn btn-info" onclick="shareSession()">📤 Поделиться</button>
+                    </div>
+                    
+                    <div id="ownerControls" class="owner-controls hidden">
+                        <h4>⚙️ Настройки владельца</h4>
+                        <div class="control-row">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="readonlyToggle" onchange="toggleReadonly()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span>Только просмотр (запретить редактирование другим)</span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -1229,35 +1498,21 @@
 
     <script>
         // ============================================
-        // КОДИРОВАНИЕ/ДЕКОДИРОВАНИЕ
+        // FIREBASE CONFIGURATION
         // ============================================
-        function encodeToBase64(str) {
-            try {
-                const utf8Bytes = new TextEncoder().encode(str);
-                let binary = '';
-                for (let i = 0; i < utf8Bytes.length; i++) {
-                    binary += String.fromCharCode(utf8Bytes[i]);
-                }
-                return btoa(binary);
-            } catch (e) {
-                console.error('Encode error:', e);
-                return null;
-            }
-        }
-
-        function decodeFromBase64(base64) {
-            try {
-                const binary = atob(base64);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) {
-                    bytes[i] = binary.charCodeAt(i);
-                }
-                return new TextDecoder().decode(bytes);
-            } catch (e) {
-                console.error('Decode error:', e);
-                return null;
-            }
-        }
+        // ВАЖНО: Замените на свою конфигурацию Firebase!
+        const firebaseConfig = {
+  apiKey: "AIzaSyBuQkcqVg_30Fho3Svq7Zz75Abwqcp5MBE",
+  authDomain: "mikhailnbublek1.firebaseapp.com",
+  databaseURL: "https://mikhailnbublek1-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "mikhailnbublek1",
+  storageBucket: "mikhailnbublek1.firebasestorage.app",
+  messagingSenderId: "79990577838",
+  appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
+};
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
         // ============================================
         // STATE
@@ -1265,6 +1520,8 @@
         let state = {
             sessionId: null,
             sessionName: '',
+            ownerId: null,
+            isReadonly: false,
             participants: [],
             participantCount: 0,
             types: [],
@@ -1273,65 +1530,157 @@
             norms: {},
             participantCalories: {},
             purchased: {},
-            participantAdjustments: {} // Новое: история корректировок для каждого участника
+            participantAdjustments: {},
+            contingency: {
+                type: 'percent', // 'percent' или 'fixed'
+                value: 0
+            }
         };
 
-        let allSessions = [];
+        let currentUserId = null;
+        let sessionRef = null;
+        let isOnline = true;
+        let syncTimeout = null;
 
         // ============================================
         // INITIALIZATION
         // ============================================
-        document.addEventListener('DOMContentLoaded', function() {
-            loadAllSessions();
-            renderSessions();
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Генерируем или получаем ID пользователя
+            currentUserId = localStorage.getItem('partyUserId');
+            if (!currentUserId) {
+                currentUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('partyUserId', currentUserId);
+            }
+
+            // Проверяем URL на наличие ID сессии
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionIdFromUrl = urlParams.get('session');
+
+            if (sessionIdFromUrl) {
+                await openSession(sessionIdFromUrl);
+            } else {
+                showSessionsPage();
+            }
+
+            // Отслеживаем состояние подключения
+            database.ref('.info/connected').on('value', (snapshot) => {
+                isOnline = snapshot.val() === true;
+                updateSyncStatus();
+            });
+
+            hideLoading();
         });
 
-        function loadAllSessions() {
-            try {
-                const saved = localStorage.getItem('partySessions');
-                allSessions = saved ? JSON.parse(saved) : [];
-            } catch (e) {
-                console.error('Load sessions error:', e);
-                allSessions = [];
+        function showLoading(text = 'Загрузка...') {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.querySelector('.loading-text').textContent = text;
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function updateSyncStatus() {
+            const statusEl = document.getElementById('syncStatus');
+            if (!statusEl) return;
+
+            if (isOnline) {
+                statusEl.className = 'sync-status online';
+                statusEl.querySelector('.sync-text').textContent = 'Подключено';
+            } else {
+                statusEl.className = 'sync-status offline';
+                statusEl.querySelector('.sync-text').textContent = 'Офлайн';
             }
         }
 
-        function saveAllSessions() {
-            try {
-                localStorage.setItem('partySessions', JSON.stringify(allSessions));
-            } catch (e) {
-                console.error('Save sessions error:', e);
-                showToast('Ошибка сохранения', 'error');
-            }
+        function setSyncingStatus() {
+            const statusEl = document.getElementById('syncStatus');
+            if (!statusEl) return;
+            statusEl.className = 'sync-status syncing';
+            statusEl.querySelector('.sync-text').textContent = 'Синхронизация...';
         }
 
         // ============================================
-        // SESSIONS PAGE
+        // SESSION MANAGEMENT
         // ============================================
-        function renderSessions() {
+        function showSessionsPage() {
+            document.getElementById('sessionsPage').classList.remove('hidden');
+            document.getElementById('calculatorPage').classList.add('hidden');
+            
+            // Очищаем URL
+            window.history.replaceState({}, '', window.location.pathname);
+            
+            loadMySessions();
+        }
+
+        async function loadMySessions() {
             const container = document.getElementById('sessionsList');
+            container.innerHTML = '<p class="empty-message">Загрузка сессий...</p>';
 
-            if (allSessions.length === 0) {
-                container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
-                return;
+            try {
+                // Загружаем сессии, где текущий пользователь является владельцем
+                const snapshot = await database.ref('sessions')
+                    .orderByChild('ownerId')
+                    .equalTo(currentUserId)
+                    .once('value');
+
+                const sessions = [];
+                snapshot.forEach((child) => {
+                    sessions.push({
+                        id: child.key,
+                        ...child.val()
+                    });
+                });
+
+                // Также загружаем сессии из localStorage (посещенные)
+                const visitedSessions = JSON.parse(localStorage.getItem('visitedSessions') || '[]');
+                
+                for (const sessionId of visitedSessions) {
+                    if (!sessions.find(s => s.id === sessionId)) {
+                        const sessionSnapshot = await database.ref(`sessions/${sessionId}`).once('value');
+                        if (sessionSnapshot.exists()) {
+                            sessions.push({
+                                id: sessionId,
+                                ...sessionSnapshot.val(),
+                                isVisited: true
+                            });
+                        }
+                    }
+                }
+
+                if (sessions.length === 0) {
+                    container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
+                    return;
+                }
+
+                // Сортируем по дате создания
+                sessions.sort((a, b) => new Date(b.created) - new Date(a.created));
+
+                container.innerHTML = sessions.map((session, index) => `
+                    <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
+                        <div class="session-info">
+                            <span class="session-name">${escapeHtml(session.name)}</span>
+                            <span class="session-date">${formatDate(session.created)}</span>
+                            <span class="session-owner">${session.ownerId === currentUserId ? '👑 Вы владелец' : '👤 Участник'}</span>
+                        </div>
+                        <div class="session-actions">
+                            <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
+                            <button class="btn btn-secondary btn-small" onclick="copyLink('${session.id}')">Ссылка</button>
+                            ${session.ownerId === currentUserId ? `
+                                <button class="btn btn-delete btn-small" onclick="deleteSession('${session.id}')">Удалить</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Load sessions error:', error);
+                container.innerHTML = '<p class="empty-message">Ошибка загрузки сессий</p>';
             }
-
-            container.innerHTML = allSessions.map((session, index) => `
-                <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
-                    <div class="session-info">
-                        <span class="session-name">${escapeHtml(session.name)}</span>
-                        <span class="session-date">${formatDate(session.created)}</span>
-                    </div>
-                    <div class="session-actions">
-                        <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
-                        <button class="btn btn-secondary btn-small" onclick="exportSessionFromList('${session.id}')">Код</button>
-                        <button class="btn btn-delete btn-small" onclick="deleteSession('${session.id}')">Удалить</button>
-                    </div>
-                </div>
-            `).join('');
         }
 
-        function createSession() {
+        async function createSession() {
             const nameInput = document.getElementById('newSessionName');
             const name = nameInput.value.trim();
 
@@ -1341,198 +1690,321 @@
                 return;
             }
 
-            const newSession = {
-                id: 'session_' + Date.now(),
-                name: name,
-                created: new Date().toISOString(),
-                data: {
-                    participants: [],
-                    participantCount: 0,
-                    types: [],
-                    dishes: [],
-                    ingredients: [],
-                    norms: {},
-                    participantCalories: {},
-                    purchased: {},
-                    participantAdjustments: {}
-                }
-            };
+            showLoading('Создание сессии...');
 
-            allSessions.push(newSession);
-            saveAllSessions();
-            nameInput.value = '';
-            showToast('Сессия создана!', 'success');
-            openSession(newSession.id);
+            try {
+                const sessionId = 'session_' + Date.now();
+                const sessionData = {
+                    name: name,
+                    ownerId: currentUserId,
+                    created: new Date().toISOString(),
+                    isReadonly: false,
+                    data: {
+                        participants: [],
+                        participantCount: 0,
+                        types: [],
+                        dishes: [],
+                        ingredients: [],
+                        norms: {},
+                        participantCalories: {},
+                        purchased: {},
+                        participantAdjustments: {},
+                        contingency: { type: 'percent', value: 0 }
+                    }
+                };
+
+                await database.ref(`sessions/${sessionId}`).set(sessionData);
+                
+                nameInput.value = '';
+                showToast('Сессия создана!', 'success');
+                await openSession(sessionId);
+
+            } catch (error) {
+                console.error('Create session error:', error);
+                showToast('Ошибка создания сессии', 'error');
+                hideLoading();
+            }
         }
 
-        function openSession(sessionId) {
-            const session = allSessions.find(s => s.id === sessionId);
-            if (!session) {
-                showToast('Сессия не найдена', 'error');
-                return;
+        async function openSession(sessionId) {
+            showLoading('Загрузка сессии...');
+
+            try {
+                // Отписываемся от предыдущей сессии
+                if (sessionRef) {
+                    sessionRef.off();
+                }
+
+                sessionRef = database.ref(`sessions/${sessionId}`);
+                
+                const snapshot = await sessionRef.once('value');
+                
+                if (!snapshot.exists()) {
+                    showToast('Сессия не найдена', 'error');
+                    hideLoading();
+                    showSessionsPage();
+                    return;
+                }
+
+                const sessionData = snapshot.val();
+                
+                state.sessionId = sessionId;
+                state.sessionName = sessionData.name;
+                state.ownerId = sessionData.ownerId;
+                state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
+                
+                const data = sessionData.data || {};
+                state.participants = data.participants || [];
+                state.participantCount = data.participantCount || 0;
+                state.types = data.types || [];
+                state.dishes = data.dishes || [];
+                state.ingredients = data.ingredients || [];
+                state.norms = data.norms || {};
+                state.participantCalories = data.participantCalories || {};
+                state.purchased = data.purchased || {};
+                state.participantAdjustments = data.participantAdjustments || {};
+                state.contingency = data.contingency || { type: 'percent', value: 0 };
+
+                // Сохраняем в посещенные
+                saveToVisited(sessionId);
+
+                // Обновляем URL
+                const newUrl = `${window.location.pathname}?session=${sessionId}`;
+                window.history.replaceState({}, '', newUrl);
+
+                // Показываем страницу калькулятора
+                document.getElementById('sessionsPage').classList.add('hidden');
+                document.getElementById('calculatorPage').classList.remove('hidden');
+                
+                document.getElementById('sessionTitle').textContent = sessionData.name;
+                
+                // Настраиваем UI в зависимости от прав
+                setupUIForPermissions();
+                
+                // Заполняем поле участников
+                if (state.participants.length > 0) {
+                    document.getElementById('participantsInput').value = state.participants.join(', ');
+                } else if (state.participantCount > 0) {
+                    document.getElementById('participantsInput').value = state.participantCount.toString();
+                }
+
+                // Обновляем ссылку на сессию
+                updateSessionLink();
+
+                // Подписываемся на изменения в реальном времени
+                sessionRef.on('value', (snapshot) => {
+                    if (snapshot.exists()) {
+                        handleRemoteUpdate(snapshot.val());
+                    }
+                });
+
+                render();
+                hideLoading();
+
+            } catch (error) {
+                console.error('Open session error:', error);
+                showToast('Ошибка открытия сессии', 'error');
+                hideLoading();
+                showSessionsPage();
             }
+        }
 
-            state.sessionId = session.id;
-            state.sessionName = session.name;
-            state.participants = session.data.participants || [];
-            state.participantCount = session.data.participantCount || 0;
-            state.types = session.data.types || [];
-            state.dishes = session.data.dishes || [];
-            state.ingredients = session.data.ingredients || [];
-            state.norms = session.data.norms || {};
-            state.participantCalories = session.data.participantCalories || {};
-            state.purchased = session.data.purchased || {};
-            state.participantAdjustments = session.data.participantAdjustments || {};
+        function handleRemoteUpdate(sessionData) {
+            // Проверяем, изменились ли данные
+            const data = sessionData.data || {};
+            
+            state.sessionName = sessionData.name;
+            state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
+            state.participants = data.participants || [];
+            state.participantCount = data.participantCount || 0;
+            state.types = data.types || [];
+            state.dishes = data.dishes || [];
+            state.ingredients = data.ingredients || [];
+            state.norms = data.norms || {};
+            state.participantCalories = data.participantCalories || {};
+            state.purchased = data.purchased || {};
+            state.participantAdjustments = data.participantAdjustments || {};
+            state.contingency = data.contingency || { type: 'percent', value: 0 };
 
-            document.getElementById('sessionTitle').textContent = session.name;
-            document.getElementById('sessionsPage').classList.add('hidden');
-            document.getElementById('calculatorPage').classList.remove('hidden');
-
-            if (state.participants.length > 0) {
-                document.getElementById('participantsInput').value = state.participants.join(', ');
-            } else if (state.participantCount > 0) {
-                document.getElementById('participantsInput').value = state.participantCount.toString();
-            } else {
-                document.getElementById('participantsInput').value = '';
-            }
-
+            setupUIForPermissions();
             render();
+            updateSyncStatus();
+        }
+
+        function setupUIForPermissions() {
+            const isOwner = state.ownerId === currentUserId;
+            const canEdit = !state.isReadonly || isOwner;
+
+            // Показываем/скрываем баннер только для чтения
+            document.getElementById('readonlyBanner').classList.toggle('hidden', canEdit);
+            
+            // Показываем/скрываем панель владельца
+            document.getElementById('ownerControls').classList.toggle('hidden', !isOwner);
+            
+            // Обновляем checkbox
+            if (isOwner) {
+                document.getElementById('readonlyToggle').checked = state.isReadonly;
+            }
+
+            // Отключаем элементы управления если нельзя редактировать
+            document.getElementById('participantsInput').disabled = !canEdit;
+            document.getElementById('applyParticipantsBtn').disabled = !canEdit;
+            
+            const toolbar = document.getElementById('mainToolbar');
+            toolbar.querySelectorAll('.btn').forEach(btn => btn.disabled = !canEdit);
+        }
+
+        function saveToVisited(sessionId) {
+            let visited = JSON.parse(localStorage.getItem('visitedSessions') || '[]');
+            if (!visited.includes(sessionId)) {
+                visited.push(sessionId);
+                localStorage.setItem('visitedSessions', JSON.stringify(visited));
+            }
+        }
+
+        async function deleteSession(sessionId) {
+            if (!confirm('Удалить эту сессию? Это действие нельзя отменить.')) return;
+
+            showLoading('Удаление сессии...');
+
+            try {
+                await database.ref(`sessions/${sessionId}`).remove();
+                showToast('Сессия удалена', 'success');
+                loadMySessions();
+            } catch (error) {
+                console.error('Delete session error:', error);
+                showToast('Ошибка удаления', 'error');
+            }
+
+            hideLoading();
         }
 
         function goToSessions() {
-            document.getElementById('calculatorPage').classList.add('hidden');
-            document.getElementById('sessionsPage').classList.remove('hidden');
+            if (sessionRef) {
+                sessionRef.off();
+                sessionRef = null;
+            }
             state.sessionId = null;
-            renderSessions();
-        }
-
-        function deleteSession(sessionId) {
-            if (!confirm('Удалить эту сессию? Это действие нельзя отменить.')) return;
-
-            allSessions = allSessions.filter(s => s.id !== sessionId);
-            saveAllSessions();
-            showToast('Сессия удалена', 'success');
-            renderSessions();
+            showSessionsPage();
         }
 
         // ============================================
-        // IMPORT/EXPORT
+        // SAVE TO FIREBASE
         // ============================================
-        function generateSessionCode(session) {
+        function saveSession() {
+            if (!state.sessionId || !sessionRef) return;
+            
+            // Проверяем права на редактирование
+            if (state.isReadonly && state.ownerId !== currentUserId) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
+            setSyncingStatus();
+
+            // Отложенное сохранение для оптимизации
+            clearTimeout(syncTimeout);
+            syncTimeout = setTimeout(async () => {
+                try {
+                    await sessionRef.child('data').set({
+                        participants: state.participants,
+                        participantCount: state.participantCount,
+                        types: state.types,
+                        dishes: state.dishes,
+                        ingredients: state.ingredients,
+                        norms: state.norms,
+                        participantCalories: state.participantCalories,
+                        purchased: state.purchased,
+                        participantAdjustments: state.participantAdjustments,
+                        contingency: state.contingency
+                    });
+                    updateSyncStatus();
+                } catch (error) {
+                    console.error('Save error:', error);
+                    showToast('Ошибка сохранения', 'error');
+                }
+            }, 500);
+        }
+
+        async function toggleReadonly() {
+            const isReadonly = document.getElementById('readonlyToggle').checked;
+            
             try {
-                const exportData = {
-                    v: 1,
-                    name: session.name,
-                    created: session.created,
-                    data: session.data
-                };
-                return encodeToBase64(JSON.stringify(exportData));
-            } catch (e) {
-                console.error('Generate code error:', e);
-                return null;
+                await sessionRef.child('isReadonly').set(isReadonly);
+                state.isReadonly = isReadonly;
+                showToast(isReadonly ? 'Режим только просмотр включён' : 'Редактирование разрешено', 'success');
+            } catch (error) {
+                console.error('Toggle readonly error:', error);
+                showToast('Ошибка изменения настройки', 'error');
             }
         }
 
-        function parseSessionCode(code) {
+        // ============================================
+        // SESSION LINK
+        // ============================================
+        function updateSessionLink() {
+            const link = `${window.location.origin}${window.location.pathname}?session=${state.sessionId}`;
+            document.getElementById('sessionLinkInput').value = link;
+        }
+
+        function copySessionLink() {
+            const link = document.getElementById('sessionLinkInput').value;
+            copyToClipboard(link);
+            showToast('Ссылка скопирована!', 'success');
+        }
+
+        function copyLink(sessionId) {
+            const link = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+            copyToClipboard(link);
+            showToast('Ссылка скопирована!', 'success');
+        }
+
+        async function shareSession() {
+            const link = document.getElementById('sessionLinkInput').value;
+            
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: state.sessionName,
+                        text: `Присоединяйтесь к планированию: ${state.sessionName}`,
+                        url: link
+                    });
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        copySessionLink();
+                    }
+                }
+            } else {
+                copySessionLink();
+            }
+        }
+
+        function joinByLink() {
+            const input = document.getElementById('joinSessionLink');
+            const link = input.value.trim();
+            
+            if (!link) {
+                showToast('Вставьте ссылку', 'warning');
+                return;
+            }
+
             try {
-                code = code.trim().replace(/\s/g, '');
-                const json = decodeFromBase64(code);
-                if (!json) throw new Error('Decode failed');
-                const data = JSON.parse(json);
-                if (!data.name || !data.data) throw new Error('Invalid structure');
-                return data;
+                const url = new URL(link);
+                const sessionId = url.searchParams.get('session');
+                
+                if (sessionId) {
+                    openSession(sessionId);
+                } else {
+                    showToast('Неверная ссылка', 'error');
+                }
             } catch (e) {
-                console.error('Parse code error:', e);
-                return null;
+                // Возможно это просто ID сессии
+                if (link.startsWith('session_')) {
+                    openSession(link);
+                } else {
+                    showToast('Неверная ссылка', 'error');
+                }
             }
-        }
-
-        function importSession() {
-            const codeArea = document.getElementById('importCode');
-            const code = codeArea.value.trim();
-
-            if (!code) {
-                showToast('Вставьте код сессии', 'warning');
-                codeArea.focus();
-                return;
-            }
-
-            const parsed = parseSessionCode(code);
-
-            if (!parsed) {
-                showToast('Ошибка: неверный код сессии', 'error');
-                return;
-            }
-
-            const newSession = {
-                id: 'session_' + Date.now(),
-                name: parsed.name,
-                created: new Date().toISOString(),
-                data: parsed.data
-            };
-
-            allSessions.push(newSession);
-            saveAllSessions();
-            codeArea.value = '';
-            showToast('Сессия импортирована!', 'success');
-            openSession(newSession.id);
-        }
-
-        function exportSessionFromList(sessionId) {
-            const session = allSessions.find(s => s.id === sessionId);
-            if (!session) return;
-
-            const code = generateSessionCode(session);
-            if (!code) {
-                showToast('Ошибка генерации кода', 'error');
-                return;
-            }
-
-            copyToClipboard(code);
-            showToast('Код скопирован!', 'success');
-        }
-
-        function updateSessionCode() {
-            const session = allSessions.find(s => s.id === state.sessionId);
-            if (!session) return;
-
-            const code = generateSessionCode(session);
-            const codeArea = document.getElementById('sessionCodeArea');
-            if (code && codeArea) {
-                codeArea.value = code;
-            }
-        }
-
-        function copySessionCode() {
-            const codeArea = document.getElementById('sessionCodeArea');
-            if (!codeArea.value) {
-                showToast('Нет кода для копирования', 'warning');
-                return;
-            }
-            copyToClipboard(codeArea.value);
-            showToast('Код скопирован!', 'success');
-        }
-
-        function downloadSessionCode() {
-            const session = allSessions.find(s => s.id === state.sessionId);
-            if (!session) return;
-
-            const code = generateSessionCode(session);
-            if (!code) {
-                showToast('Ошибка генерации кода', 'error');
-                return;
-            }
-
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = session.name.replace(/[^a-zA-Zа-яА-Я0-9]/g, '_') + '_session.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Файл скачан!', 'success');
         }
 
         function copyToClipboard(text) {
@@ -1555,31 +2027,14 @@
         }
 
         // ============================================
-        // SAVE SESSION
-        // ============================================
-        function saveSession() {
-            const index = allSessions.findIndex(s => s.id === state.sessionId);
-            if (index !== -1) {
-                allSessions[index].data = {
-                    participants: state.participants,
-                    participantCount: state.participantCount,
-                    types: state.types,
-                    dishes: state.dishes,
-                    ingredients: state.ingredients,
-                    norms: state.norms,
-                    participantCalories: state.participantCalories,
-                    purchased: state.purchased,
-                    participantAdjustments: state.participantAdjustments
-                };
-                saveAllSessions();
-            }
-            updateSessionCode();
-        }
-
-        // ============================================
         // PARTICIPANTS
         // ============================================
         function applyParticipants() {
+            if (state.isReadonly && state.ownerId !== currentUserId) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             const input = document.getElementById('participantsInput').value.trim();
 
             if (!input) {
@@ -1632,6 +2087,137 @@
             document.body.style.overflow = '';
         }
 
+        function canEdit() {
+            return !state.isReadonly || state.ownerId === currentUserId;
+        }
+
+        // ============================================
+        // CONTINGENCY (НЕПРЕДВИДЕННЫЕ РАСХОДЫ)
+        // ============================================
+        function showContingencyModal() {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
+            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            const currentContingency = calculateContingency();
+
+            showModal(`
+                <h3>💰 Непредвиденные расходы</h3>
+                <div class="modal-form">
+                    <div class="calc-current">
+                        <div class="calc-current-label">Базовая стоимость всех блюд</div>
+                        <div class="calc-current-amount">${formatMoney(baseCost)}</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Тип расчёта:</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="contingencyType" value="percent" 
+                                    ${state.contingency.type === 'percent' ? 'checked' : ''}
+                                    onchange="updateContingencyPreview()">
+                                Процент от суммы
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="contingencyType" value="fixed" 
+                                    ${state.contingency.type === 'fixed' ? 'checked' : ''}
+                                    onchange="updateContingencyPreview()">
+                                Фиксированная сумма
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="percentGroup" ${state.contingency.type === 'fixed' ? 'style="display:none"' : ''}>
+                        <label>Процент непредвиденных расходов (%):</label>
+                        <input type="number" id="contingencyPercent" class="input-field" 
+                            min="0" max="100" step="1" 
+                            value="${state.contingency.type === 'percent' ? state.contingency.value : 10}"
+                            oninput="updateContingencyPreview()">
+                    </div>
+
+                    <div class="form-group" id="fixedGroup" ${state.contingency.type === 'percent' ? 'style="display:none"' : ''}>
+                        <label>Фиксированная сумма (руб.):</label>
+                        <input type="number" id="contingencyFixed" class="input-field" 
+                            min="0" step="100" 
+                            value="${state.contingency.type === 'fixed' ? state.contingency.value : 0}"
+                            oninput="updateContingencyPreview()">
+                    </div>
+
+                    <div class="contingency-preview">
+                        <div class="label">Непредвиденные расходы составят:</div>
+                        <div class="value" id="contingencyPreviewValue">${formatMoney(currentContingency)}</div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="clearContingency()">Сбросить</button>
+                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                        <button class="btn btn-primary" onclick="saveContingency()">Сохранить</button>
+                    </div>
+                </div>
+            `);
+
+            // Обработчик переключения типа
+            document.querySelectorAll('input[name="contingencyType"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    document.getElementById('percentGroup').style.display = this.value === 'percent' ? '' : 'none';
+                    document.getElementById('fixedGroup').style.display = this.value === 'fixed' ? '' : 'none';
+                    updateContingencyPreview();
+                });
+            });
+        }
+
+        function updateContingencyPreview() {
+            const type = document.querySelector('input[name="contingencyType"]:checked').value;
+            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            let contingency = 0;
+
+            if (type === 'percent') {
+                                const percent = parseFloat(document.getElementById('contingencyPercent').value) || 0;
+                contingency = baseCost * (percent / 100);
+            } else {
+                contingency = parseFloat(document.getElementById('contingencyFixed').value) || 0;
+            }
+
+            document.getElementById('contingencyPreviewValue').textContent = formatMoney(contingency);
+        }
+
+        function saveContingency() {
+            const type = document.querySelector('input[name="contingencyType"]:checked').value;
+            let value = 0;
+
+            if (type === 'percent') {
+                value = parseFloat(document.getElementById('contingencyPercent').value) || 0;
+            } else {
+                value = parseFloat(document.getElementById('contingencyFixed').value) || 0;
+            }
+
+            state.contingency = { type, value };
+            saveSession();
+            closeModal();
+            render();
+            showToast('Непредвиденные расходы сохранены', 'success');
+        }
+
+        function clearContingency() {
+            state.contingency = { type: 'percent', value: 0 };
+            saveSession();
+            closeModal();
+            render();
+            showToast('Непредвиденные расходы сброшены', 'success');
+        }
+
+        function calculateContingency() {
+            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            
+            if (state.contingency.type === 'percent') {
+                return baseCost * (state.contingency.value / 100);
+            } else {
+                return state.contingency.value;
+            }
+        }
+
         // ============================================
         // PARTICIPANT CALCULATION MODAL
         // ============================================
@@ -1640,7 +2226,6 @@
             const baseAmount = perParticipant[participantName] || 0;
             const adjustments = state.participantAdjustments[participantName] || [];
             
-            // Рассчитываем итоговую сумму с учётом корректировок
             const totalAdjustment = adjustments.reduce((sum, adj) => {
                 return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
             }, 0);
@@ -1657,9 +2242,20 @@
                                     <span class="calc-history-amount">${formatMoney(adj.amount)}</span>
                                     <span class="calc-history-date">${formatDateTime(adj.date)}</span>
                                 </div>
-                                <button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">×</button>
+                                ${canEdit() ? `<button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">×</button>` : ''}
                             </div>
                         `).join('')}
+                    </div>
+                </div>
+            ` : '';
+
+            const editControls = canEdit() ? `
+                <div class="form-group">
+                    <label>Вычесть или добавить (руб.):</label>
+                    <div class="calc-input-group">
+                        <input type="number" id="adjustmentAmount" class="input-field" placeholder="Введите сумму" min="0" step="0.01">
+                        <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">➖ Вычесть</button>
+                        <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">➕ Добавить</button>
                     </div>
                 </div>
             ` : '';
@@ -1672,14 +2268,7 @@
                         <div class="calc-current-amount">${formatMoney(baseAmount)}</div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Вычесть или добавить (руб.):</label>
-                        <div class="calc-input-group">
-                            <input type="number" id="adjustmentAmount" class="input-field" placeholder="Введите сумму" min="0" step="0.01">
-                            <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">➖ Вычесть</button>
-                            <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">➕ Добавить</button>
-                        </div>
-                    </div>
+                    ${editControls}
 
                     <div class="calc-result">
                         <div class="calc-result-label">Итого к оплате</div>
@@ -1693,25 +2282,14 @@
                     </div>
                 </div>
             `);
-
-            // Добавляем обработчик для live-обновления результата
-            document.getElementById('adjustmentAmount').addEventListener('input', function() {
-                updateCalcPreview(participantName, baseAmount, adjustments);
-            });
-        }
-
-        function updateCalcPreview(participantName, baseAmount, adjustments) {
-            const inputAmount = parseFloat(document.getElementById('adjustmentAmount').value) || 0;
-            const totalAdjustment = adjustments.reduce((sum, adj) => {
-                return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
-            }, 0);
-            const resultElement = document.getElementById('calcResultAmount');
-            if (resultElement) {
-                resultElement.textContent = formatMoney(baseAmount + totalAdjustment);
-            }
         }
 
         function addAdjustment(participantName, type) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             const amountInput = document.getElementById('adjustmentAmount');
             const amount = parseFloat(amountInput.value);
 
@@ -1734,19 +2312,22 @@
             saveSession();
             showToast(type === 'deduction' ? 'Вычет добавлен' : 'Добавление сохранено', 'success');
             
-            // Перерисовываем модальное окно
             showParticipantCalcModal(participantName);
             renderPerPerson();
         }
 
         function deleteAdjustment(participantName, index) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             if (!state.participantAdjustments[participantName]) return;
 
             state.participantAdjustments[participantName].splice(index, 1);
             saveSession();
             showToast('Корректировка удалена', 'success');
             
-            // Перерисовываем модальное окно
             showParticipantCalcModal(participantName);
             renderPerPerson();
         }
@@ -1786,6 +2367,11 @@
         // TYPE FUNCTIONS
         // ============================================
         function showTypeModal(editId = null) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             const type = editId ? state.types.find(t => t.id === editId) : null;
             const isEdit = !!type;
 
@@ -1908,6 +2494,11 @@
         }
 
         function deleteType(typeId) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             if (!confirm('Удалить тип со всеми блюдами и ингредиентами?')) return;
 
             const dishIds = state.dishes.filter(d => d.typeId === typeId).map(d => d.id);
@@ -1929,6 +2520,11 @@
         // DISH FUNCTIONS
         // ============================================
         function showDishModal(editId = null, presetTypeId = null) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             const dish = editId ? state.dishes.find(d => d.id === editId) : null;
             const isEdit = !!dish;
 
@@ -2053,6 +2649,11 @@
         }
 
         function deleteDish(dishId) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             if (!confirm('Удалить блюдо со всеми ингредиентами?')) return;
 
             state.ingredients = state.ingredients.filter(i => i.dishId !== dishId);
@@ -2068,6 +2669,11 @@
         // INGREDIENT FUNCTIONS
         // ============================================
         function showIngredientModal(parentType, parentId, editId = null) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             const ingredient = editId ? state.ingredients.find(i => i.id === editId) : null;
             const isEdit = !!ingredient;
 
@@ -2095,7 +2701,7 @@
                         <div class="form-group">
                             <label>Ед. измерения:</label>
                             <select id="ingredientUnit" class="input-field">
-                                                                <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
+                                <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
                                 <option value="г" ${ingredient && ingredient.unit === 'г' ? 'selected' : ''}>грамм</option>
                                 <option value="л" ${ingredient && ingredient.unit === 'л' ? 'selected' : ''}>литр</option>
                                 <option value="мл" ${ingredient && ingredient.unit === 'мл' ? 'selected' : ''}>миллилитр</option>
@@ -2171,6 +2777,11 @@
         }
 
         function deleteIngredient(ingredientId) {
+            if (!canEdit()) {
+                showToast('Нет прав на редактирование', 'warning');
+                return;
+            }
+
             state.ingredients = state.ingredients.filter(i => i.id !== ingredientId);
             saveSession();
             render();
@@ -2185,53 +2796,53 @@
             renderNormsTable();
             renderShoppingList();
             renderSummary();
-            updateSessionCode();
         }
 
         function renderMainField() {
             const main = document.getElementById('mainField');
+            const editable = canEdit();
             let html = '';
 
             state.types.forEach((type, index) => {
                 html += `<div class="type-container fade-in" style="animation-delay: ${index * 0.05}s">`;
-                html += renderType(type);
+                html += renderType(type, editable);
                 html += `</div>`;
             });
 
             const dishesWithoutType = state.dishes.filter(d => !d.typeId);
             dishesWithoutType.forEach((dish, index) => {
                 html += `<div class="dish-container fade-in" style="animation-delay: ${(state.types.length + index) * 0.05}s">`;
-                html += renderDish(dish);
+                html += renderDish(dish, editable);
                 html += `</div>`;
             });
 
             main.innerHTML = html || '<p class="empty-message">Начните с добавления типа блюд или отдельного блюда</p>';
-
-            initDragAndDrop();
         }
 
-        function renderType(type) {
+        function renderType(type, editable) {
             const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
             const typeDishes = state.dishes.filter(d => d.typeId === type.id);
             const dishCount = typeDishes.length;
 
             let html = `
                 <div class="type-row" style="background: linear-gradient(135deg, ${type.color} 0%, ${adjustColor(type.color, -20)} 100%)" 
-                    data-type-id="${type.id}" onclick="showTypeModal('${type.id}')">
+                    data-type-id="${type.id}" onclick="${editable ? `showTypeModal('${type.id}')` : ''}">
                     <span class="type-name">
                         ${escapeHtml(type.name)}
                         <span class="type-badge">${dishCount} ${pluralize(dishCount, 'блюдо', 'блюда', 'блюд')}</span>
                         ${type.normKg ? `<span class="type-badge">${type.normKg} кг/чел</span>` : ''}
                     </span>
                     <div class="type-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-add btn-small" onclick="showIngredientModal('type', '${type.id}')">+ Ингредиент</button>
-                        <button class="btn btn-delete btn-small" onclick="deleteType('${type.id}')">Удалить</button>
+                        ${editable ? `
+                            <button class="btn btn-add btn-small" onclick="showIngredientModal('type', '${type.id}')">+ Ингредиент</button>
+                            <button class="btn btn-delete btn-small" onclick="deleteType('${type.id}')">Удалить</button>
+                        ` : ''}
                     </div>
                 </div>
             `;
 
             typeIngredients.forEach(ing => {
-                html += renderIngredient(ing);
+                html += renderIngredient(ing, editable);
             });
 
             if (typeIngredients.length > 0) {
@@ -2250,30 +2861,32 @@
             }
 
             typeDishes.forEach(dish => {
-                html += renderDish(dish);
+                html += renderDish(dish, editable);
             });
 
             return html;
         }
 
-        function renderDish(dish) {
+        function renderDish(dish, editable) {
             const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
 
             let html = `
-                <div class="dish-row" draggable="true" data-dish-id="${dish.id}" onclick="showDishModal('${dish.id}')">
+                <div class="dish-row" data-dish-id="${dish.id}" onclick="${editable ? `showDishModal('${dish.id}')` : ''}">
                     <span class="dish-name">${escapeHtml(dish.name)}</span>
                     <div class="dish-actions" onclick="event.stopPropagation()">
                         <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')" title="Участники">
                             ${getParticipantsCount(dish)} чел.
                         </button>
-                        <button class="btn btn-add btn-small" onclick="showIngredientModal('dish', '${dish.id}')">+ Ингредиент</button>
-                        <button class="btn btn-delete btn-small" onclick="deleteDish('${dish.id}')">Удалить</button>
+                        ${editable ? `
+                            <button class="btn btn-add btn-small" onclick="showIngredientModal('dish', '${dish.id}')">+ Ингредиент</button>
+                            <button class="btn btn-delete btn-small" onclick="deleteDish('${dish.id}')">Удалить</button>
+                        ` : ''}
                     </div>
                 </div>
             `;
 
             dishIngredients.forEach(ing => {
-                html += renderIngredient(ing);
+                html += renderIngredient(ing, editable);
             });
 
             if (dishIngredients.length > 0) {
@@ -2294,17 +2907,17 @@
             return html;
         }
 
-        function renderIngredient(ing) {
+        function renderIngredient(ing, editable) {
             const total = ing.quantity * ing.price;
             return `
-                <div class="ingredient-row" draggable="true" data-ingredient-id="${ing.id}" 
-                    onclick="showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')">
+                <div class="ingredient-row" data-ingredient-id="${ing.id}" 
+                    onclick="${editable ? `showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')` : ''}">
                     <span class="ingredient-name">${escapeHtml(ing.name)}</span>
                     <span class="ingredient-quantity">${ing.quantity} ${ing.unit}</span>
                     <span class="ingredient-price">${formatMoney(ing.price)}</span>
                     <span class="ingredient-price">${formatMoney(total)}</span>
                     <span class="ingredient-shop">${escapeHtml(ing.shop || '—')}</span>
-                    <button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">×</button>
+                    ${editable ? `<button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">×</button>` : '<span></span>'}
                 </div>
             `;
         }
@@ -2375,78 +2988,13 @@
             return dish.personCount > 0 ? total / dish.personCount : total;
         }
 
-        function calculatePersonDishKg(dish, participant, type) {
-            if (!type || !type.normKg) {
-                return { kg: 0, percent: 0 };
-            }
-
-            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
-            const dishNormValue = getNormValue(dish.id, participant);
-
-            if (dishNormValue === 0) {
-                return { kg: 0, percent: 0 };
-            }
-
-            let totalWeight = 0;
-            const dishWeights = {};
-
-            typeDishes.forEach(d => {
-                const normValue = getNormValue(d.id, participant);
-                const weight = normValue === 2 ? 2 : normValue === 1 ? 1 : 0;
-                dishWeights[d.id] = weight;
-                totalWeight += weight;
-            });
-
-            if (totalWeight === 0) {
-                return { kg: 0, percent: 0 };
-            }
-
-            const calories = state.participantCalories[participant] || 2000;
-            const personalMultiplier = calories / 2000;
-            const personTypeNorm = type.normKg * personalMultiplier;
-            const dishWeight = dishWeights[dish.id];
-            const percent = (dishWeight / totalWeight) * 100;
-            const kg = personTypeNorm * (dishWeight / totalWeight);
-
-            return { kg, percent };
-        }
-
-        function calculatePersonTypeKg(type, participant) {
-            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
-            let total = 0;
-
-            typeDishes.forEach(dish => {
-                const kgData = calculatePersonDishKg(dish, participant, type);
-                total += kgData.kg;
-            });
-
-            return total;
-        }
-
-        function calculateTypeTotalKg(type) {
-            let total = 0;
-
-            state.participants.forEach(p => {
-                total += calculatePersonTypeKg(type, p);
-            });
-
-            return total;
-        }
-
-        function calculateDishTotalKg(dish, type) {
-            let total = 0;
-
-            state.participants.forEach(p => {
-                const kgData = calculatePersonDishKg(dish, p, type);
-                total += kgData.kg;
-            });
-
-            return total;
-        }
-
         function calculatePerParticipant() {
             const perParticipant = {};
-            state.participants.forEach(p => perParticipant[p] = 0);
+            const contingency = calculateContingency();
+            const participantsCount = state.participants.length || state.participantCount || 1;
+            const contingencyPerPerson = contingency / participantsCount;
+
+            state.participants.forEach(p => perParticipant[p] = contingencyPerPerson);
 
             state.dishes.forEach(dish => {
                 const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
@@ -2551,8 +3099,10 @@
                     }).join('') +
                 '</div>';
             } else {
-                const total = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-                const perPerson = state.participantCount > 0 ? total / state.participantCount : total;
+                const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+                const contingency = calculateContingency();
+                const totalCost = baseCost + contingency;
+                const perPerson = state.participantCount > 0 ? totalCost / state.participantCount : totalCost;
                 list.innerHTML = `
                     <div class="per-person-list">
                         <div class="per-person-item" style="cursor: default;">
@@ -2572,6 +3122,7 @@
         function renderNormsTable() {
             const section = document.getElementById('normsSection');
             const container = document.getElementById('normsTable');
+            const editable = canEdit();
 
             if (state.participants.length === 0 || state.dishes.length === 0) {
                 section.classList.add('hidden');
@@ -2590,14 +3141,14 @@
                         <div class="calorie-input">
                             <input type="number" value="${calories}" min="1000" max="5000" step="100" 
                                 onchange="updateCalories('${escapeHtml(p)}', this.value)" 
-                                title="Норма калорий">
-                            <div class="norm-kg">${(calories * 0.6 / 1000).toFixed(2)} кг/день</div>
+                                title="Норма калорий"
+                                ${!editable ? 'disabled' : ''}>
                         </div>
                     </th>
                 `;
             });
 
-            html += '<th>Итого кг</th></tr></thead><tbody>';
+            html += '<th>Итого</th></tr></thead><tbody>';
 
             state.types.forEach(type => {
                 const typeDishes = state.dishes.filter(d => d.typeId === type.id);
@@ -2605,19 +3156,14 @@
                     html += `
                         <tr class="type-header-row" style="background: ${type.color}22;">
                             <td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">
-                                ${escapeHtml(type.name)} 
-                                <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">
-                                    (норма: ${type.normKg || 0} кг/чел.)
-                                </span>
+                                ${escapeHtml(type.name)}
                             </td>
                         </tr>
                     `;
 
                     typeDishes.forEach(dish => {
-                        html += renderNormRow(dish, type);
+                        html += renderNormRow(dish, editable);
                     });
-
-                    html += renderTypeSubtotalRow(type);
                 }
             });
 
@@ -2631,137 +3177,42 @@
                     </tr>
                 `;
                 dishesWithoutType.forEach(dish => {
-                    html += renderNormRow(dish, null);
+                    html += renderNormRow(dish, editable);
                 });
             }
 
             html += '</tbody></table>';
-            html += renderTypeSummary();
-
             container.innerHTML = html;
         }
 
-        function renderNormRow(dish, type) {
-            const bgColor = type ? type.color + '08' : 'transparent';
-            const borderColor = type ? type.color : 'var(--border)';
-
-            let html = `<tr style="background: ${bgColor}; border-left: 3px solid ${borderColor};">
+        function renderNormRow(dish, editable) {
+            let html = `<tr>
                 <td style="text-align: left; font-weight: 500; padding-left: 24px;">
                     ${escapeHtml(dish.name)}
                 </td>`;
 
-            let totalKg = 0;
-
             state.participants.forEach(p => {
                 const normValue = getNormValue(dish.id, p);
-                const kgData = calculatePersonDishKg(dish, p, type);
-
-                totalKg += kgData.kg;
-
                 const selectStyle = getSelectStyle(normValue);
-                const percentText = kgData.percent > 0 ? `${Math.round(kgData.percent)}%` : '—';
-                const percentColor = kgData.percent > 50 ? (type?.color || 'var(--success)') : 'var(--text-secondary)';
 
                 html += `
-                    <td style="vertical-align: top;">
-                        <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" style="${selectStyle}">
+                    <td>
+                        <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" 
+                            style="${selectStyle}"
+                            ${!editable ? 'disabled' : ''}>
                             <option value="0" ${normValue === 0 ? 'selected' : ''}>Не буду</option>
                             <option value="1" ${normValue === 1 ? 'selected' : ''}>Возможно</option>
                             <option value="2" ${normValue === 2 ? 'selected' : ''}>Буду</option>
                         </select>
-                        <div class="norm-details" style="margin-top: 4px; font-size: 0.75rem;">
-                            <div style="color: var(--text-primary); font-weight: 500;">
-                                ${kgData.kg.toFixed(3)} кг
-                            </div>
-                            <div style="color: ${percentColor}; font-size: 0.7rem;">
-                                ${percentText}
-                            </div>
-                            ${renderMiniBar(kgData.percent, type?.color || '#888')}
-                        </div>
                     </td>
                 `;
             });
 
-            const dishTotalKg = calculateDishTotalKg(dish, type);
+            // Расчёт стоимости блюда
+            const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
+            const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
 
-            html += `
-                <td style="vertical-align: top;">
-                    <strong style="color: var(--primary); font-size: 1rem;">${dishTotalKg.toFixed(2)}</strong>
-                    <div style="font-size: 0.7rem; color: var(--text-secondary);">кг на всех</div>
-                </td>
-            </tr>`;
-
-            return html;
-        }
-
-        function renderMiniBar(percent, color) {
-            if (percent <= 0) return '';
-
-            return `
-                <div style="
-                    width: 100%;
-                    height: 3px;
-                    background: #eee;
-                    border-radius: 2px;
-                    margin-top: 3px;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        width: ${Math.min(percent, 100)}%;
-                        height: 100%;
-                        background: ${color};
-                        border-radius: 2px;
-                        transition: width 0.3s ease;
-                    "></div>
-                </div>
-            `;
-        }
-
-        function renderTypeSubtotalRow(type) {
-            let html = `<tr style="background: ${type.color}15; font-weight: 500;">
-                <td style="text-align: right; padding-right: 16px;">Итого ${escapeHtml(type.name)}:</td>`;
-
-            let grandTotal = 0;
-
-            state.participants.forEach(p => {
-                const personTypeKg = calculatePersonTypeKg(type, p);
-                grandTotal += personTypeKg;
-
-                html += `<td style="color: ${type.color};">${personTypeKg.toFixed(3)} кг</td>`;
-            });
-
-            html += `<td><strong style="color: ${type.color};">${grandTotal.toFixed(3)} кг</strong></td></tr>`;
-            return html;
-        }
-
-        function renderTypeSummary() {
-            if (state.types.length === 0) return '';
-
-            let html = '<div style="margin-top: 20px;"><h4 style="margin-bottom: 12px;">Сводка по типам</h4><div class="per-person-list">';
-
-            state.types.forEach(type => {
-                const typeTotal = calculateTypeTotalKg(type);
-                const expectedTotal = (type.normKg || 0) * state.participants.length;
-                const diff = typeTotal - expectedTotal;
-                const diffText = expectedTotal > 0 ?
-                    `(${diff >= 0 ? '+' : ''}${diff.toFixed(2)} от нормы)` : '';
-                const diffColor = diff >= 0 ? 'var(--success)' : 'var(--warning)';
-
-                html += `
-                    <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color}; cursor: default;">
-                        <div class="per-person-top">
-                            <span class="per-person-name">${escapeHtml(type.name)}</span>
-                            <span class="per-person-amount" style="color: ${type.color};">${typeTotal.toFixed(2)} кг</span>
-                        </div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">
-                            Норма: ${type.normKg || 0} кг × ${state.participants.length} чел. = ${expectedTotal.toFixed(2)} кг
-                            <span style="color: ${diffColor}; margin-left: 8px;">${diffText}</span>
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += '</div></div>';
+            html += `<td><strong>${formatMoney(total)}</strong></td></tr>`;
             return html;
         }
 
@@ -2772,6 +3223,8 @@
         }
 
         function updateNorm(dishId, participant, value) {
+            if (!canEdit()) return;
+
             if (!state.norms[dishId]) {
                 state.norms[dishId] = {};
             }
@@ -2781,6 +3234,8 @@
         }
 
         function updateCalories(participant, value) {
+            if (!canEdit()) return;
+
             state.participantCalories[participant] = parseInt(value) || 2000;
             saveSession();
             render();
@@ -2791,6 +3246,7 @@
         // ============================================
         function renderShoppingList() {
             const container = document.getElementById('shoppingList');
+            const editable = canEdit();
 
             if (state.ingredients.length === 0) {
                 container.innerHTML = '<p class="empty-message">Добавьте ингредиенты для формирования списка покупок</p>';
@@ -2858,10 +3314,11 @@
                 const escapedId = item.id.replace(/'/g, "\\'");
 
                 html += `
-                    <div class="shopping-item ${isPurchased ? 'purchased' : ''}" style="animation-delay: ${index * 0.02}s">
+                    <div class="shopping-item ${isPurchased ? 'purchased' : ''}">
                         <input type="checkbox" class="shopping-checkbox" 
                             ${isPurchased ? 'checked' : ''} 
                             onchange="togglePurchased('${escapedId}')"
+                            ${!editable ? 'disabled' : ''}
                             title="Отметить как купленное">
                         <div class="shopping-item-name">
                             ${escapeHtml(item.name)}
@@ -2878,14 +3335,13 @@
 
             const grandTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
             const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
-            const remainingTotal = grandTotal - purchasedTotal;
 
             html += `
                 <div class="shopping-item shopping-total">
                     <span></span>
                     <span>ИТОГО</span>
-                    <span>${totalCount} ${pluralize(totalCount, 'позиция', 'позиции', 'позиций')}</span>
-                    <span style="color: rgba(255,255,255,0.8);">Осталось: ${formatMoney(remainingTotal)}</span>
+                    <span>${totalCount} поз.</span>
+                    <span>Куплено: ${formatMoney(purchasedTotal)}</span>
                     <span class="shopping-item-price">${formatMoney(grandTotal)}</span>
                 </div>
             `;
@@ -2894,23 +3350,19 @@
         }
 
         function togglePurchased(itemId) {
+            if (!canEdit()) return;
+
             state.purchased[itemId] = !state.purchased[itemId];
             saveSession();
             renderShoppingList();
             renderSummary();
-            showToast(state.purchased[itemId] ? 'Отмечено как купленное' : 'Снята отметка', 'success');
         }
 
         function formatQuantity(quantity, unit) {
             if (unit === 'шт' || unit === 'уп') {
                 return `${Math.ceil(quantity)} ${unit}`;
             }
-
-            if (quantity >= 1) {
-                return `${quantity.toFixed(2)} ${unit}`;
-            }
-
-            return `${quantity.toFixed(3)} ${unit}`;
+            return `${quantity.toFixed(2)} ${unit}`;
         }
 
         // ============================================
@@ -2918,8 +3370,11 @@
         // ============================================
         function renderSummary() {
             const container = document.getElementById('summaryContent');
+            const editable = canEdit();
 
-            const totalCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+            const contingency = calculateContingency();
+            const totalCost = baseCost + contingency;
             const totalItems = state.ingredients.length;
             const totalDishes = state.dishes.length;
             const participantsCount = state.participants.length || state.participantCount || 1;
@@ -2935,11 +3390,21 @@
             const items = Object.values(grouped);
             const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
 
+            const contingencyText = state.contingency.type === 'percent' 
+                ? `${state.contingency.value}% от суммы`
+                : 'Фиксированная сумма';
+
             container.innerHTML = `
                 <div class="summary-grid">
                     <div class="summary-card highlight">
                         <div class="summary-value">${formatMoney(totalCost)}</div>
                         <div class="summary-label">Общая стоимость</div>
+                    </div>
+                    <div class="summary-card contingency clickable" onclick="${editable ? 'showContingencyModal()' : ''}">
+                        <div class="summary-value">${formatMoney(contingency)}</div>
+                        <div class="summary-label">Непредвиденные расходы</div>
+                        ${state.contingency.value > 0 ? `<div class="summary-hint">${contingencyText}</div>` : ''}
+                        ${editable ? '<div class="summary-hint">Нажмите, чтобы изменить</div>' : ''}
                     </div>
                     <div class="summary-card">
                         <div class="summary-value">${formatMoney(perPerson)}</div>
@@ -2948,10 +3413,6 @@
                     <div class="summary-card">
                         <div class="summary-value">${totalDishes}</div>
                         <div class="summary-label">${pluralize(totalDishes, 'блюдо', 'блюда', 'блюд')}</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-value">${totalItems}</div>
-                        <div class="summary-label">${pluralize(totalItems, 'ингредиент', 'ингредиента', 'ингредиентов')}</div>
                     </div>
                     <div class="summary-card" style="border: 2px solid var(--success);">
                         <div class="summary-value" style="color: var(--success);">${formatMoney(purchasedTotal)}</div>
@@ -2963,106 +3424,6 @@
                     </div>
                 </div>
             `;
-        }
-
-        // ============================================
-        // DRAG & DROP
-        // ============================================
-        let draggedElement = null;
-
-        function initDragAndDrop() {
-            document.querySelectorAll('.dish-row').forEach(dish => {
-                dish.addEventListener('dragstart', handleDragStart);
-                dish.addEventListener('dragend', handleDragEnd);
-                dish.addEventListener('dragover', handleDragOver);
-                dish.addEventListener('dragleave', handleDragLeave);
-                dish.addEventListener('drop', handleDishDrop);
-            });
-
-            document.querySelectorAll('.ingredient-row').forEach(ing => {
-                ing.addEventListener('dragstart', handleDragStart);
-                ing.addEventListener('dragend', handleDragEnd);
-                ing.addEventListener('dragover', handleDragOver);
-                ing.addEventListener('dragleave', handleDragLeave);
-                ing.addEventListener('drop', handleIngredientDrop);
-            });
-        }
-
-        function handleDragStart(e) {
-            draggedElement = this;
-            this.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function handleDragEnd(e) {
-            this.classList.remove('dragging');
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-            draggedElement = null;
-        }
-
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            this.classList.add('drag-over');
-        }
-
-        function handleDragLeave(e) {
-            this.classList.remove('drag-over');
-        }
-
-        function handleDishDrop(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-
-            if (!draggedElement || draggedElement === this) return;
-
-            const draggedId = draggedElement.dataset.dishId;
-            const targetId = this.dataset.dishId;
-
-            if (draggedId && targetId) {
-                const draggedIndex = state.dishes.findIndex(d => d.id === draggedId);
-                const targetIndex = state.dishes.findIndex(d => d.id === targetId);
-
-                if (draggedIndex !== -1 && targetIndex !== -1) {
-                    const targetDish = state.dishes[targetIndex];
-                    state.dishes[draggedIndex].typeId = targetDish.typeId;
-
-                    const [removed] = state.dishes.splice(draggedIndex, 1);
-                    state.dishes.splice(targetIndex, 0, removed);
-
-                    saveSession();
-                    render();
-                }
-            }
-        }
-
-        function handleIngredientDrop(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-
-            if (!draggedElement || draggedElement === this) return;
-
-            const draggedId = draggedElement.dataset.ingredientId;
-            const targetId = this.dataset.ingredientId;
-
-            if (draggedId && targetId) {
-                const draggedIng = state.ingredients.find(i => i.id === draggedId);
-                const targetIng = state.ingredients.find(i => i.id === targetId);
-
-                if (draggedIng && targetIng &&
-                    draggedIng.dishId === targetIng.dishId &&
-                    draggedIng.typeId === targetIng.typeId) {
-
-                    const draggedIndex = state.ingredients.findIndex(i => i.id === draggedId);
-                    const targetIndex = state.ingredients.findIndex(i => i.id === targetId);
-
-                    const [removed] = state.ingredients.splice(draggedIndex, 1);
-                    state.ingredients.splice(targetIndex, 0, removed);
-
-                    saveSession();
-                    render();
-                }
-            }
         }
 
         // ============================================
@@ -3087,14 +3448,11 @@
         function formatDate(dateString) {
             try {
                 const date = new Date(dateString);
-                const options = {
+                return date.toLocaleDateString('ru-RU', {
                     day: 'numeric',
                     month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                };
-                return date.toLocaleDateString('ru-RU', options);
+                    year: 'numeric'
+                });
             } catch (e) {
                 return '';
             }
@@ -3103,7 +3461,6 @@
         function pluralize(n, one, few, many) {
             const mod10 = n % 10;
             const mod100 = n % 100;
-
             if (mod100 >= 11 && mod100 <= 19) return many;
             if (mod10 === 1) return one;
             if (mod10 >= 2 && mod10 <= 4) return few;
@@ -3120,12 +3477,10 @@
         }
 
         function showToast(message, type = 'info') {
-            let container = document.getElementById('toastContainer');
-
+            const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.textContent = message;
-
             container.appendChild(toast);
 
             setTimeout(() => {
@@ -3137,4 +3492,3 @@
     </script>
 </body>
 </html>
-
