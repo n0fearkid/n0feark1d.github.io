@@ -1396,7 +1396,7 @@
                     <img src="logo.png" alt="Бублек.ру" class="logo-img">
                     <div class="logo-text">
                         <div class="logo-title">Бублек.ру</div>
-                        <div class="logo-subtitle">Еда Версия 1.0</div>
+                        <div class="logo-subtitle">Еда Версия 1.1</div>
                     </div>
                 </div>
                 <p class="subtitle" style="margin-top: 12px;">Планируйте праздники легко с облачной синхронизацией</p>
@@ -1529,2014 +1529,2020 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script>
-        // ============================================
-        // FIREBASE CONFIGURATION
-        // ============================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBuQkcqVg_30Fho3Svq7Zz75Abwqcp5MBE",
-            authDomain: "mikhailnbublek1.firebaseapp.com",
-            databaseURL: "https://mikhailnbublek1-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "mikhailnbublek1",
-            storageBucket: "mikhailnbublek1.firebasestorage.app",
-            messagingSenderId: "79990577838",
-            appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
-        };
+// ============================================
+// FIREBASE CONFIGURATION
+// ============================================
+const firebaseConfig = {
+    apiKey: "AIzaSyBuQkcqVg_30Fho3Svq7Zz75Abwqcp5MBE",
+    authDomain: "mikhailnbublek1.firebaseapp.com",
+    databaseURL: "https://mikhailnbublek1-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "mikhailnbublek1",
+    storageBucket: "mikhailnbublek1.firebasestorage.app",
+    messagingSenderId: "79990577838",
+    appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
+};
 
-        let database;
-        let firebaseInitialized = false;
+let database;
+let firebaseInitialized = false;
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            firebaseInitialized = true;
-        } catch (e) {
-            console.error('Firebase init error:', e);
-        }
+try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    firebaseInitialized = true;
+} catch (e) {
+    console.error('Firebase init error:', e);
+}
 
-        // ============================================
-        // STATE
-        // ============================================
-        let state = {
-            sessionId: null,
-            sessionName: '',
-            ownerId: null,
+// ============================================
+// STATE
+// ============================================
+let state = {
+    sessionId: null,
+    sessionName: '',
+    ownerId: null,
+    isReadonly: false,
+    participants: [],
+    participantCount: 0,
+    types: [],
+    dishes: [],
+    ingredients: [],
+    norms: {},
+    participantCalories: {},
+    purchased: {},
+    participantAdjustments: {},
+    contingency: { type: 'percent', value: 0 }
+};
+
+let currentUserId = null;
+let sessionRef = null;
+let isOnline = true;
+let syncTimeout = null;
+let localSessions = {};
+
+// Флаги для предотвращения повторных обновлений
+let isLocalUpdate = false;
+let lastRenderTime = 0;
+const RENDER_THROTTLE = 100; // минимальный интервал между рендерами
+
+// ============================================
+// LOCAL STORAGE
+// ============================================
+function loadLocalSessions() {
+    try {
+        const saved = localStorage.getItem('bublek_sessions');
+        localSessions = saved ? JSON.parse(saved) : {};
+    } catch (e) {
+        localSessions = {};
+    }
+}
+
+function saveLocalSessions() {
+    try {
+        localStorage.setItem('bublek_sessions', JSON.stringify(localSessions));
+    } catch (e) {}
+}
+
+function saveSessionLocally(sessionId, sessionData) {
+    localSessions[sessionId] = {
+        id: sessionId,
+        name: sessionData.name,
+        ownerId: sessionData.ownerId,
+        isReadonly: sessionData.isReadonly || false,
+        created: sessionData.created,
+        lastAccessed: new Date().toISOString(),
+        isOwner: sessionData.ownerId === currentUserId
+    };
+    saveLocalSessions();
+}
+
+function removeLocalSession(sessionId) {
+    delete localSessions[sessionId];
+    saveLocalSessions();
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+    currentUserId = localStorage.getItem('bublek_userId');
+    if (!currentUserId) {
+        currentUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('bublek_userId', currentUserId);
+    }
+
+    loadLocalSessions();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionIdFromUrl = urlParams.get('session');
+
+    if (sessionIdFromUrl) {
+        await openSession(sessionIdFromUrl);
+    } else {
+        showSessionsPage();
+    }
+
+    if (firebaseInitialized) {
+        database.ref('.info/connected').on('value', (snapshot) => {
+            isOnline = snapshot.val() === true;
+            updateSyncStatus();
+        });
+    }
+
+    hideLoading();
+});
+
+function showLoading(text = 'Загрузка...') {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    document.querySelector('.loading-text').textContent = text;
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
+function updateSyncStatus() {
+    const statusEl = document.getElementById('syncStatus');
+    if (!statusEl) return;
+
+    if (!firebaseInitialized) {
+        statusEl.className = 'sync-status offline';
+        statusEl.querySelector('.sync-text').textContent = 'Локальный режим';
+    } else if (isOnline) {
+        statusEl.className = 'sync-status online';
+        statusEl.querySelector('.sync-text').textContent = 'Подключено';
+    } else {
+        statusEl.className = 'sync-status offline';
+        statusEl.querySelector('.sync-text').textContent = 'Офлайн';
+    }
+}
+
+function setSyncingStatus() {
+    const statusEl = document.getElementById('syncStatus');
+    if (!statusEl) return;
+    statusEl.className = 'sync-status syncing';
+    statusEl.querySelector('.sync-text').textContent = 'Синхронизация...';
+}
+
+// ============================================
+// SESSION MANAGEMENT
+// ============================================
+function showSessionsPage() {
+    document.getElementById('sessionsPage').classList.remove('hidden');
+    document.getElementById('calculatorPage').classList.add('hidden');
+    window.history.replaceState({}, '', window.location.pathname);
+    renderLocalSessions();
+}
+
+function renderLocalSessions() {
+    const container = document.getElementById('sessionsList');
+    const sessionsList = Object.values(localSessions).sort((a, b) => 
+        new Date(b.lastAccessed) - new Date(a.lastAccessed)
+    );
+
+    if (sessionsList.length === 0) {
+        container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
+        return;
+    }
+
+    container.innerHTML = sessionsList.map((session, index) => `
+        <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
+            <div class="session-info">
+                <span class="session-name">${escapeHtml(session.name)}</span>
+                <span class="session-date">${formatDate(session.lastAccessed)}</span>
+                <span class="session-owner">${session.isOwner ? 'Вы владелец' : 'Участник'}</span>
+            </div>
+            <div class="session-actions">
+                <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
+                <button class="btn btn-secondary btn-small" onclick="copyLink('${session.id}')">Ссылка</button>
+                <button class="btn btn-delete btn-small" onclick="removeFromList('${session.id}')">Убрать</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function removeFromList(sessionId) {
+    if (!confirm('Убрать сессию из списка?')) return;
+    removeLocalSession(sessionId);
+    renderLocalSessions();
+    showToast('Сессия убрана из списка', 'success');
+}
+
+async function createSession() {
+    const nameInput = document.getElementById('newSessionName');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        showToast('Введите название праздника', 'warning');
+        nameInput.focus();
+        return;
+    }
+
+    if (!firebaseInitialized) {
+        showToast('Нет подключения к серверу', 'error');
+        return;
+    }
+
+    showLoading('Создание сессии...');
+
+    try {
+        const sessionId = 'session_' + Date.now();
+        const sessionData = {
+            name: name,
+            ownerId: currentUserId,
+            created: new Date().toISOString(),
             isReadonly: false,
-            participants: [],
-            participantCount: 0,
-            types: [],
-            dishes: [],
-            ingredients: [],
-            norms: {},
-            participantCalories: {},
-            purchased: {},
-            participantAdjustments: {},
-            contingency: { type: 'percent', value: 0 }
+            data: {
+                participants: [],
+                participantCount: 0,
+                types: [],
+                dishes: [],
+                ingredients: [],
+                norms: {},
+                participantCalories: {},
+                purchased: {},
+                participantAdjustments: {},
+                contingency: { type: 'percent', value: 0 }
+            }
         };
 
-        let currentUserId = null;
-        let sessionRef = null;
-        let isOnline = true;
-        let syncTimeout = null;
-        let localSessions = {};
-        
-        // Флаг для предотвращения повторных рендеров
-        let isRendering = false;
-        let pendingRender = false;
+        await database.ref(`sessions/${sessionId}`).set(sessionData);
+        saveSessionLocally(sessionId, sessionData);
+        nameInput.value = '';
+        showToast('Сессия создана!', 'success');
+        await openSession(sessionId);
+    } catch (error) {
+        console.error('Create session error:', error);
+        showToast('Ошибка создания сессии', 'error');
+        hideLoading();
+    }
+}
 
-        // ============================================
-        // LOCAL STORAGE
-        // ============================================
-        function loadLocalSessions() {
-            try {
-                const saved = localStorage.getItem('bublek_sessions');
-                localSessions = saved ? JSON.parse(saved) : {};
-            } catch (e) {
-                localSessions = {};
-            }
-        }
+async function openSession(sessionId) {
+    if (!firebaseInitialized) {
+        showToast('Нет подключения к серверу', 'error');
+        return;
+    }
 
-        function saveLocalSessions() {
-            try {
-                localStorage.setItem('bublek_sessions', JSON.stringify(localSessions));
-            } catch (e) {}
-        }
+    showLoading('Загрузка сессии...');
 
-        function saveSessionLocally(sessionId, sessionData) {
-            localSessions[sessionId] = {
-                id: sessionId,
-                name: sessionData.name,
-                ownerId: sessionData.ownerId,
-                isReadonly: sessionData.isReadonly || false,
-                created: sessionData.created,
-                lastAccessed: new Date().toISOString(),
-                isOwner: sessionData.ownerId === currentUserId
-            };
-            saveLocalSessions();
-        }
+    try {
+        if (sessionRef) sessionRef.off();
 
-        function removeLocalSession(sessionId) {
-            delete localSessions[sessionId];
-            saveLocalSessions();
-        }
+        sessionRef = database.ref(`sessions/${sessionId}`);
+        const snapshot = await sessionRef.once('value');
 
-        // ============================================
-        // INITIALIZATION
-        // ============================================
-        document.addEventListener('DOMContentLoaded', async function() {
-            currentUserId = localStorage.getItem('bublek_userId');
-            if (!currentUserId) {
-                currentUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('bublek_userId', currentUserId);
-            }
-
-            loadLocalSessions();
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const sessionIdFromUrl = urlParams.get('session');
-
-            if (sessionIdFromUrl) {
-                await openSession(sessionIdFromUrl);
-            } else {
-                showSessionsPage();
-            }
-
-            if (firebaseInitialized) {
-                database.ref('.info/connected').on('value', (snapshot) => {
-                    isOnline = snapshot.val() === true;
-                    updateSyncStatus();
-                });
-            }
-
+        if (!snapshot.exists()) {
+            showToast('Сессия не найдена', 'error');
             hideLoading();
+            removeLocalSession(sessionId);
+            showSessionsPage();
+            return;
+        }
+
+        const sessionData = snapshot.val();
+        saveSessionLocally(sessionId, sessionData);
+
+        state.sessionId = sessionId;
+        state.sessionName = sessionData.name;
+        state.ownerId = sessionData.ownerId;
+        state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
+
+        const data = sessionData.data || {};
+        state.participants = data.participants || [];
+        state.participantCount = data.participantCount || 0;
+        state.types = data.types || [];
+        state.dishes = data.dishes || [];
+        state.ingredients = data.ingredients || [];
+        state.norms = data.norms || {};
+        state.participantCalories = data.participantCalories || {};
+        state.purchased = data.purchased || {};
+        state.participantAdjustments = data.participantAdjustments || {};
+        state.contingency = data.contingency || { type: 'percent', value: 0 };
+
+        const newUrl = `${window.location.pathname}?session=${sessionId}`;
+        window.history.replaceState({}, '', newUrl);
+
+        document.getElementById('sessionsPage').classList.add('hidden');
+        document.getElementById('calculatorPage').classList.remove('hidden');
+        document.getElementById('sessionTitle').textContent = sessionData.name;
+
+        updateUIForPermissions();
+
+        if (state.participants.length > 0) {
+            document.getElementById('participantsInput').value = state.participants.join(', ');
+        } else if (state.participantCount > 0) {
+            document.getElementById('participantsInput').value = state.participantCount.toString();
+        }
+
+        updateSessionLink();
+
+        sessionRef.on('value', (snapshot) => {
+            if (snapshot.exists() && !isLocalUpdate) {
+                handleRemoteUpdate(snapshot.val());
+            }
         });
 
-        function showLoading(text = 'Загрузка...') {
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-            document.querySelector('.loading-text').textContent = text;
+        render();
+        hideLoading();
+    } catch (error) {
+        console.error('Open session error:', error);
+        showToast('Ошибка открытия сессии', 'error');
+        hideLoading();
+        showSessionsPage();
+    }
+}
+
+function handleRemoteUpdate(sessionData) {
+    // Пропускаем если это наше локальное обновление
+    if (isLocalUpdate) return;
+    
+    const now = Date.now();
+    if (now - lastRenderTime < RENDER_THROTTLE) {
+        return;
+    }
+    
+    saveSessionLocally(state.sessionId, sessionData);
+
+    state.sessionName = sessionData.name;
+    state.ownerId = sessionData.ownerId;
+    state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
+
+    const data = sessionData.data || {};
+    state.participants = data.participants || [];
+    state.participantCount = data.participantCount || 0;
+    state.types = data.types || [];
+    state.dishes = data.dishes || [];
+    state.ingredients = data.ingredients || [];
+    state.norms = data.norms || {};
+    state.participantCalories = data.participantCalories || {};
+    state.purchased = data.purchased || {};
+    state.participantAdjustments = data.participantAdjustments || {};
+    state.contingency = data.contingency || { type: 'percent', value: 0 };
+
+    updateUIForPermissions();
+    render();
+    updateSyncStatus();
+}
+
+// Обновление UI без перерисовки тумблера
+function updateUIForPermissions() {
+    const isOwner = state.ownerId === currentUserId;
+    const canEditData = !state.isReadonly || isOwner;
+
+    document.getElementById('readonlyBanner').classList.toggle('hidden', canEditData);
+    document.getElementById('ownerControls').classList.toggle('hidden', !isOwner);
+
+    document.getElementById('participantsInput').disabled = !canEditData;
+    document.getElementById('applyParticipantsBtn').disabled = !canEditData;
+
+    const toolbar = document.getElementById('mainToolbar');
+    toolbar.querySelectorAll('.btn').forEach(btn => btn.disabled = !canEditData);
+    
+    // Обновляем тумблер только если его состояние отличается
+    if (isOwner) {
+        const toggle = document.getElementById('readonlyToggle');
+        if (toggle.checked !== state.isReadonly) {
+            // Временно отключаем transition
+            const slider = toggle.nextElementSibling;
+            slider.style.transition = 'none';
+            toggle.checked = state.isReadonly;
+            // Форсируем reflow и включаем transition обратно
+            slider.offsetHeight;
+            slider.style.transition = '';
+        }
+    }
+}
+
+async function toggleReadonly() {
+    if (!sessionRef) {
+        showToast('Нет подключения к сессии', 'error');
+        return;
+    }
+
+    if (state.ownerId !== currentUserId) {
+        showToast('Только владелец может изменять эту настройку', 'error');
+        return;
+    }
+
+    const toggle = document.getElementById('readonlyToggle');
+    const newValue = toggle.checked;
+
+    setSyncingStatus();
+    isLocalUpdate = true;
+
+    try {
+        await database.ref(`sessions/${state.sessionId}`).update({ isReadonly: newValue });
+        state.isReadonly = newValue;
+
+        if (localSessions[state.sessionId]) {
+            localSessions[state.sessionId].isReadonly = newValue;
+            saveLocalSessions();
         }
 
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.add('hidden');
-        }
+        updateSyncStatus();
+        showToast(newValue ? 'Режим "только просмотр" включён' : 'Редактирование разрешено', 'success');
+    } catch (error) {
+        console.error('Toggle readonly error:', error);
+        toggle.checked = !newValue;
+        updateSyncStatus();
+        showToast('Ошибка сохранения настройки', 'error');
+    } finally {
+        setTimeout(() => { isLocalUpdate = false; }, 500);
+    }
+}
 
-        function updateSyncStatus() {
-            const statusEl = document.getElementById('syncStatus');
-            if (!statusEl) return;
+function goToSessions() {
+    if (sessionRef) {
+        sessionRef.off();
+        sessionRef = null;
+    }
+    state.sessionId = null;
+    showSessionsPage();
+}
 
-            if (!firebaseInitialized) {
-                statusEl.className = 'sync-status offline';
-                statusEl.querySelector('.sync-text').textContent = 'Локальный режим';
-            } else if (isOnline) {
-                statusEl.className = 'sync-status online';
-                statusEl.querySelector('.sync-text').textContent = 'Подключено';
-            } else {
-                statusEl.className = 'sync-status offline';
-                statusEl.querySelector('.sync-text').textContent = 'Офлайн';
-            }
-        }
+// ============================================
+// SAVE TO FIREBASE
+// ============================================
+function saveSession() {
+    if (!state.sessionId || !sessionRef) return;
 
-        function setSyncingStatus() {
-            const statusEl = document.getElementById('syncStatus');
-            if (!statusEl) return;
-            statusEl.className = 'sync-status syncing';
-            statusEl.querySelector('.sync-text').textContent = 'Синхронизация...';
-        }
+    if (state.isReadonly && state.ownerId !== currentUserId) {
+        showToast('Нет прав на редактирование', 'warning');
+        return;
+    }
 
-        // ============================================
-        // SESSION MANAGEMENT
-        // ============================================
-        function showSessionsPage() {
-            document.getElementById('sessionsPage').classList.remove('hidden');
-            document.getElementById('calculatorPage').classList.add('hidden');
-            window.history.replaceState({}, '', window.location.pathname);
-            renderLocalSessions();
-        }
+    setSyncingStatus();
+    isLocalUpdate = true;
 
-        function renderLocalSessions() {
-            const container = document.getElementById('sessionsList');
-            const sessionsList = Object.values(localSessions).sort((a, b) => 
-                new Date(b.lastAccessed) - new Date(a.lastAccessed)
-            );
-
-            if (sessionsList.length === 0) {
-                container.innerHTML = '<p class="empty-message">Нет сохраненных сессий. Создайте первую!</p>';
-                return;
-            }
-
-            container.innerHTML = sessionsList.map((session, index) => `
-                <div class="session-item fade-in" style="animation-delay: ${index * 0.05}s">
-                    <div class="session-info">
-                        <span class="session-name">${escapeHtml(session.name)}</span>
-                        <span class="session-date">${formatDate(session.lastAccessed)}</span>
-                        <span class="session-owner">${session.isOwner ? 'Вы владелец' : 'Участник'}</span>
-                    </div>
-                    <div class="session-actions">
-                        <button class="btn btn-primary btn-small" onclick="openSession('${session.id}')">Открыть</button>
-                        <button class="btn btn-secondary btn-small" onclick="copyLink('${session.id}')">Ссылка</button>
-                        <button class="btn btn-delete btn-small" onclick="removeFromList('${session.id}')">Убрать</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function removeFromList(sessionId) {
-            if (!confirm('Убрать сессию из списка?')) return;
-            removeLocalSession(sessionId);
-            renderLocalSessions();
-            showToast('Сессия убрана из списка', 'success');
-        }
-
-        async function createSession() {
-            const nameInput = document.getElementById('newSessionName');
-            const name = nameInput.value.trim();
-
-            if (!name) {
-                showToast('Введите название праздника', 'warning');
-                nameInput.focus();
-                return;
-            }
-
-            if (!firebaseInitialized) {
-                showToast('Нет подключения к серверу', 'error');
-                return;
-            }
-
-            showLoading('Создание сессии...');
-
-            try {
-                const sessionId = 'session_' + Date.now();
-                const sessionData = {
-                    name: name,
-                    ownerId: currentUserId,
-                    created: new Date().toISOString(),
-                    isReadonly: false,
-                    data: {
-                        participants: [],
-                        participantCount: 0,
-                        types: [],
-                        dishes: [],
-                        ingredients: [],
-                        norms: {},
-                        participantCalories: {},
-                        purchased: {},
-                        participantAdjustments: {},
-                        contingency: { type: 'percent', value: 0 }
-                    }
-                };
-
-                await database.ref(`sessions/${sessionId}`).set(sessionData);
-                saveSessionLocally(sessionId, sessionData);
-                nameInput.value = '';
-                showToast('Сессия создана!', 'success');
-                await openSession(sessionId);
-            } catch (error) {
-                console.error('Create session error:', error);
-                showToast('Ошибка создания сессии', 'error');
-                hideLoading();
-            }
-        }
-
-        async function openSession(sessionId) {
-            if (!firebaseInitialized) {
-                showToast('Нет подключения к серверу', 'error');
-                return;
-            }
-
-            showLoading('Загрузка сессии...');
-
-            try {
-                if (sessionRef) sessionRef.off();
-
-                sessionRef = database.ref(`sessions/${sessionId}`);
-                const snapshot = await sessionRef.once('value');
-
-                if (!snapshot.exists()) {
-                    showToast('Сессия не найдена', 'error');
-                    hideLoading();
-                    removeLocalSession(sessionId);
-                    showSessionsPage();
-                    return;
-                }
-
-                const sessionData = snapshot.val();
-                saveSessionLocally(sessionId, sessionData);
-
-                state.sessionId = sessionId;
-                state.sessionName = sessionData.name;
-                state.ownerId = sessionData.ownerId;
-                state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
-
-                const data = sessionData.data || {};
-                state.participants = data.participants || [];
-                state.participantCount = data.participantCount || 0;
-                state.types = data.types || [];
-                state.dishes = data.dishes || [];
-                state.ingredients = data.ingredients || [];
-                state.norms = data.norms || {};
-                state.participantCalories = data.participantCalories || {};
-                state.purchased = data.purchased || {};
-                state.participantAdjustments = data.participantAdjustments || {};
-                state.contingency = data.contingency || { type: 'percent', value: 0 };
-
-                const newUrl = `${window.location.pathname}?session=${sessionId}`;
-                window.history.replaceState({}, '', newUrl);
-
-                document.getElementById('sessionsPage').classList.add('hidden');
-                document.getElementById('calculatorPage').classList.remove('hidden');
-                document.getElementById('sessionTitle').textContent = sessionData.name;
-
-                setupUIForPermissions();
-
-                if (state.participants.length > 0) {
-                    document.getElementById('participantsInput').value = state.participants.join(', ');
-                } else if (state.participantCount > 0) {
-                    document.getElementById('participantsInput').value = state.participantCount.toString();
-                }
-
-                updateSessionLink();
-
-                sessionRef.on('value', (snapshot) => {
-                    if (snapshot.exists()) handleRemoteUpdate(snapshot.val());
-                });
-
-                render();
-                hideLoading();
-            } catch (error) {
-                console.error('Open session error:', error);
-                showToast('Ошибка открытия сессии', 'error');
-                hideLoading();
-                showSessionsPage();
-            }
-        }
-
-        function handleRemoteUpdate(sessionData) {
-            saveSessionLocally(state.sessionId, sessionData);
-
-            state.sessionName = sessionData.name;
-            state.ownerId = sessionData.ownerId;
-            state.isReadonly = sessionData.isReadonly && sessionData.ownerId !== currentUserId;
-
-            const data = sessionData.data || {};
-            state.participants = data.participants || [];
-            state.participantCount = data.participantCount || 0;
-            state.types = data.types || [];
-            state.dishes = data.dishes || [];
-            state.ingredients = data.ingredients || [];
-            state.norms = data.norms || {};
-            state.participantCalories = data.participantCalories || {};
-            state.purchased = data.purchased || {};
-            state.participantAdjustments = data.participantAdjustments || {};
-            state.contingency = data.contingency || { type: 'percent', value: 0 };
-
-            setupUIForPermissions();
-            renderSmooth();
+    clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(async () => {
+        try {
+            await sessionRef.child('data').set({
+                participants: state.participants,
+                participantCount: state.participantCount,
+                types: state.types,
+                dishes: state.dishes,
+                ingredients: state.ingredients,
+                norms: state.norms,
+                participantCalories: state.participantCalories,
+                purchased: state.purchased,
+                participantAdjustments: state.participantAdjustments,
+                contingency: state.contingency
+            });
             updateSyncStatus();
+        } catch (error) {
+            console.error('Save error:', error);
+            showToast('Ошибка сохранения', 'error');
+            updateSyncStatus();
+        } finally {
+            setTimeout(() => { isLocalUpdate = false; }, 500);
         }
+    }, 300);
+}
 
-        function setupUIForPermissions() {
-            const isOwner = state.ownerId === currentUserId;
-            const canEditData = !state.isReadonly || isOwner;
+// ============================================
+// SESSION LINK
+// ============================================
+function updateSessionLink() {
+    const link = `${window.location.origin}${window.location.pathname}?session=${state.sessionId}`;
+    document.getElementById('sessionLinkInput').value = link;
+}
 
-            document.getElementById('readonlyBanner').classList.toggle('hidden', canEditData);
-            document.getElementById('ownerControls').classList.toggle('hidden', !isOwner);
+function copySessionLink() {
+    const link = document.getElementById('sessionLinkInput').value;
+    copyToClipboard(link);
+    showToast('Ссылка скопирована!', 'success');
+}
 
-            // Обновляем тумблер без сброса анимации
-            if (isOwner) {
-                const toggle = document.getElementById('readonlyToggle');
-                if (toggle && toggle.checked !== state.isReadonly) {
-                    toggle.checked = state.isReadonly;
-                }
-            }
+function copyLink(sessionId) {
+    const link = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+    copyToClipboard(link);
+    showToast('Ссылка скопирована!', 'success');
+}
 
-            document.getElementById('participantsInput').disabled = !canEditData;
-            document.getElementById('applyParticipantsBtn').disabled = !canEditData;
+async function shareSession() {
+    const link = document.getElementById('sessionLinkInput').value;
 
-            const toolbar = document.getElementById('mainToolbar');
-            toolbar.querySelectorAll('.btn').forEach(btn => btn.disabled = !canEditData);
-        }
-
-        async function toggleReadonly() {
-            if (!sessionRef) {
-                showToast('Нет подключения к сессии', 'error');
-                return;
-            }
-
-            if (state.ownerId !== currentUserId) {
-                showToast('Только владелец может изменять эту настройку', 'error');
-                return;
-            }
-
-            const toggle = document.getElementById('readonlyToggle');
-            const newValue = toggle.checked;
-
-            setSyncingStatus();
-
-            try {
-                await database.ref(`sessions/${state.sessionId}`).update({ isReadonly: newValue });
-                state.isReadonly = newValue;
-
-                if (localSessions[state.sessionId]) {
-                    localSessions[state.sessionId].isReadonly = newValue;
-                    saveLocalSessions();
-                }
-
-                updateSyncStatus();
-                showToast(newValue ? 'Режим "только просмотр" включён' : 'Редактирование разрешено', 'success');
-            } catch (error) {
-                console.error('Toggle readonly error:', error);
-                toggle.checked = !newValue;
-                updateSyncStatus();
-                showToast('Ошибка сохранения настройки', 'error');
-            }
-        }
-
-        function goToSessions() {
-            if (sessionRef) {
-                sessionRef.off();
-                sessionRef = null;
-            }
-            state.sessionId = null;
-            showSessionsPage();
-        }
-
-        // ============================================
-        // SAVE TO FIREBASE
-        // ============================================
-        function saveSession() {
-            if (!state.sessionId || !sessionRef) return;
-
-            if (state.isReadonly && state.ownerId !== currentUserId) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            setSyncingStatus();
-
-            clearTimeout(syncTimeout);
-            syncTimeout = setTimeout(async () => {
-                try {
-                    await sessionRef.child('data').set({
-                        participants: state.participants,
-                        participantCount: state.participantCount,
-                        types: state.types,
-                        dishes: state.dishes,
-                        ingredients: state.ingredients,
-                        norms: state.norms,
-                        participantCalories: state.participantCalories,
-                        purchased: state.purchased,
-                        participantAdjustments: state.participantAdjustments,
-                        contingency: state.contingency
-                    });
-                    updateSyncStatus();
-                } catch (error) {
-                    console.error('Save error:', error);
-                    showToast('Ошибка сохранения', 'error');
-                    updateSyncStatus();
-                }
-            }, 500);
-        }
-
-        // ============================================
-        // SESSION LINK
-        // ============================================
-        function updateSessionLink() {
-            const link = `${window.location.origin}${window.location.pathname}?session=${state.sessionId}`;
-            document.getElementById('sessionLinkInput').value = link;
-        }
-
-        function copySessionLink() {
-            const link = document.getElementById('sessionLinkInput').value;
-            copyToClipboard(link);
-            showToast('Ссылка скопирована!', 'success');
-        }
-
-        function copyLink(sessionId) {
-            const link = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
-            copyToClipboard(link);
-            showToast('Ссылка скопирована!', 'success');
-        }
-
-        async function shareSession() {
-            const link = document.getElementById('sessionLinkInput').value;
-
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: state.sessionName,
-                        text: `Присоединяйтесь к планированию: ${state.sessionName}`,
-                        url: link
-                    });
-                } catch (error) {
-                    if (error.name !== 'AbortError') copySessionLink();
-                }
-            } else {
-                copySessionLink();
-            }
-        }
-
-        function joinByLink() {
-            const input = document.getElementById('joinSessionLink');
-            const link = input.value.trim();
-
-            if (!link) {
-                showToast('Вставьте ссылку', 'warning');
-                return;
-            }
-
-            try {
-                const url = new URL(link);
-                const sessionId = url.searchParams.get('session');
-
-                if (sessionId) {
-                    input.value = '';
-                    openSession(sessionId);
-                } else {
-                    showToast('Неверная ссылка', 'error');
-                }
-            } catch (e) {
-                if (link.startsWith('session_')) {
-                    input.value = '';
-                    openSession(link);
-                } else {
-                    showToast('Неверная ссылка', 'error');
-                }
-            }
-        }
-
-        function copyToClipboard(text) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-            } else {
-                fallbackCopy(text);
-            }
-        }
-
-        function fallbackCopy(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.select();
-            try { document.execCommand('copy'); } catch (e) {}
-            document.body.removeChild(textarea);
-        }
-
-        // ============================================
-        // PARTICIPANTS
-        // ============================================
-        function applyParticipants() {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            const input = document.getElementById('participantsInput').value.trim();
-
-            if (!input) {
-                state.participants = [];
-                state.participantCount = 0;
-            } else if (/^\d+$/.test(input)) {
-                state.participants = [];
-                state.participantCount = parseInt(input);
-            } else {
-                state.participants = input.split(',').map(p => p.trim()).filter(p => p);
-                state.participantCount = state.participants.length;
-            }
-
-            state.participants.forEach(p => {
-                if (!state.participantCalories[p]) state.participantCalories[p] = 2000;
-                if (!state.participantAdjustments[p]) state.participantAdjustments[p] = [];
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: state.sessionName,
+                text: `Присоединяйтесь к планированию: ${state.sessionName}`,
+                url: link
             });
+        } catch (error) {
+            if (error.name !== 'AbortError') copySessionLink();
+        }
+    } else {
+        copySessionLink();
+    }
+}
 
-            state.dishes.forEach(dish => {
-                if (!state.norms[dish.id]) state.norms[dish.id] = {};
-                state.participants.forEach(p => {
-                    if (state.norms[dish.id][p] === undefined) state.norms[dish.id][p] = 2;
-                });
+function joinByLink() {
+    const input = document.getElementById('joinSessionLink');
+    const link = input.value.trim();
+
+    if (!link) {
+        showToast('Вставьте ссылку', 'warning');
+        return;
+    }
+
+    try {
+        const url = new URL(link);
+        const sessionId = url.searchParams.get('session');
+
+        if (sessionId) {
+            input.value = '';
+            openSession(sessionId);
+        } else {
+            showToast('Неверная ссылка', 'error');
+        }
+    } catch (e) {
+        if (link.startsWith('session_')) {
+            input.value = '';
+            openSession(link);
+        } else {
+            showToast('Неверная ссылка', 'error');
+        }
+    }
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(textarea);
+}
+
+// ============================================
+// PARTICIPANTS
+// ============================================
+function applyParticipants() {
+    if (!canEdit()) {
+        showToast('Нет прав на редактирование', 'warning');
+        return;
+    }
+
+    const input = document.getElementById('participantsInput').value.trim();
+
+    if (!input) {
+        state.participants = [];
+        state.participantCount = 0;
+    } else if (/^\d+$/.test(input)) {
+        state.participants = [];
+        state.participantCount = parseInt(input);
+    } else {
+        state.participants = input.split(',').map(p => p.trim()).filter(p => p);
+        state.participantCount = state.participants.length;
+    }
+
+    state.participants.forEach(p => {
+        if (!state.participantCalories[p]) state.participantCalories[p] = 2000;
+        if (!state.participantAdjustments[p]) state.participantAdjustments[p] = [];
+    });
+
+    state.dishes.forEach(dish => {
+        if (!state.norms[dish.id]) state.norms[dish.id] = {};
+        state.participants.forEach(p => {
+            if (state.norms[dish.id][p] === undefined) state.norms[dish.id][p] = 2;
+        });
+    });
+
+    saveSession();
+    render();
+    showToast('Участники обновлены', 'success');
+}
+
+function canEdit() {
+    return !state.isReadonly || state.ownerId === currentUserId;
+}
+
+// ============================================
+// MODAL
+// ============================================
+function showModal(content) {
+    document.getElementById('modalContent').innerHTML = content;
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// ============================================
+// CONTINGENCY
+// ============================================
+function showContingencyModal() {
+    if (!canEdit()) {
+        showToast('Нет прав на редактирование', 'warning');
+        return;
+    }
+
+    const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+    const currentContingency = calculateContingency();
+
+    showModal(`
+        <h3>Непредвиденные расходы</h3>
+        <div class="modal-form">
+            <div class="calc-current">
+                <div class="calc-current-label">Базовая стоимость всех блюд</div>
+                <div class="calc-current-amount">${formatMoney(baseCost)}</div>
+            </div>
+
+            <div class="form-group">
+                <label>Тип расчёта:</label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="contingencyType" value="percent" 
+                            ${state.contingency.type === 'percent' ? 'checked' : ''}
+                            onchange="updateContingencyPreview()">
+                        Процент от суммы
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="contingencyType" value="fixed" 
+                            ${state.contingency.type === 'fixed' ? 'checked' : ''}
+                            onchange="updateContingencyPreview()">
+                        Фиксированная сумма
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" id="percentGroup" ${state.contingency.type === 'fixed' ? 'style="display:none"' : ''}>
+                <label>Процент (%):</label>
+                <input type="number" id="contingencyPercent" class="input-field" 
+                    min="0" max="100" step="1" 
+                    value="${state.contingency.type === 'percent' ? state.contingency.value : 10}"
+                    oninput="updateContingencyPreview()">
+            </div>
+
+            <div class="form-group" id="fixedGroup" ${state.contingency.type === 'percent' ? 'style="display:none"' : ''}>
+                <label>Сумма (руб.):</label>
+                <input type="number" id="contingencyFixed" class="input-field" 
+                    min="0" step="100" 
+                    value="${state.contingency.type === 'fixed' ? state.contingency.value : 0}"
+                    oninput="updateContingencyPreview()">
+            </div>
+
+            <div class="contingency-preview">
+                <div class="label">Непредвиденные расходы:</div>
+                <div class="value" id="contingencyPreviewValue">${formatMoney(currentContingency)}</div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="clearContingency()">Сбросить</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveContingency()">Сохранить</button>
+            </div>
+        </div>
+    `);
+
+    document.querySelectorAll('input[name="contingencyType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('percentGroup').style.display = this.value === 'percent' ? '' : 'none';
+            document.getElementById('fixedGroup').style.display = this.value === 'fixed' ? '' : 'none';
+            updateContingencyPreview();
+        });
+    });
+}
+
+function updateContingencyPreview() {
+    const type = document.querySelector('input[name="contingencyType"]:checked').value;
+    const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+    let contingency = 0;
+
+    if (type === 'percent') {
+        const percent = parseFloat(document.getElementById('contingencyPercent').value) || 0;
+        contingency = baseCost * (percent / 100);
+    } else {
+        contingency = parseFloat(document.getElementById('contingencyFixed').value) || 0;
+    }
+
+    document.getElementById('contingencyPreviewValue').textContent = formatMoney(contingency);
+}
+
+function saveContingency() {
+    const type = document.querySelector('input[name="contingencyType"]:checked').value;
+    let value = 0;
+
+    if (type === 'percent') {
+        value = parseFloat(document.getElementById('contingencyPercent').value) || 0;
+    } else {
+        value = parseFloat(document.getElementById('contingencyFixed').value) || 0;
+    }
+
+    state.contingency = { type, value };
+    saveSession();
+    closeModal();
+    render();
+    showToast('Сохранено', 'success');
+}
+
+function clearContingency() {
+    state.contingency = { type: 'percent', value: 0 };
+    saveSession();
+    closeModal();
+    render();
+    showToast('Сброшено', 'success');
+}
+
+function calculateContingency() {
+    const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+    if (state.contingency.type === 'percent') {
+        return baseCost * (state.contingency.value / 100);
+    }
+    return state.contingency.value;
+}
+
+// ============================================
+// PARTICIPANT CALCULATION
+// ============================================
+function showParticipantCalcModal(participantName) {
+    const perParticipant = calculatePerParticipant();
+    const baseAmount = perParticipant[participantName] || 0;
+    const adjustments = state.participantAdjustments[participantName] || [];
+
+    const totalAdjustment = adjustments.reduce((sum, adj) => {
+        return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+    }, 0);
+    const finalAmount = baseAmount + totalAdjustment;
+
+    const historyHtml = adjustments.length > 0 ? `
+        <div class="calc-history">
+            <h4>История корректировок</h4>
+            <div class="calc-history-list">
+                ${adjustments.map((adj, index) => `
+                    <div class="calc-history-item">
+                        <div class="calc-history-info">
+                            <span class="calc-history-type ${adj.type}">${adj.type === 'deduction' ? 'Вычет' : 'Добавление'}</span>
+                            <span class="calc-history-amount">${formatMoney(adj.amount)}</span>
+                            <span class="calc-history-date">${formatDateTime(adj.date)}</span>
+                        </div>
+                        ${canEdit() ? `<button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">X</button>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    ` : '';
+
+    const editControls = canEdit() ? `
+        <div class="form-group">
+            <label>Вычесть или добавить (руб.):</label>
+            <div class="calc-input-group">
+                <input type="number" id="adjustmentAmount" class="input-field" placeholder="Сумма" min="0" step="0.01">
+                <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">Вычесть</button>
+                <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">Добавить</button>
+            </div>
+        </div>
+    ` : '';
+
+    showModal(`
+        <h3>Расчёт для ${escapeHtml(participantName)}</h3>
+        <div class="modal-form">
+            <div class="calc-current">
+                <div class="calc-current-label">Базовая сумма</div>
+                <div class="calc-current-amount">${formatMoney(baseAmount)}</div>
+            </div>
+            ${editControls}
+            <div class="calc-result">
+                <div class="calc-result-label">Итого к оплате</div>
+                <div class="calc-result-amount">${formatMoney(finalAmount)}</div>
+            </div>
+            ${historyHtml}
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
+            </div>
+        </div>
+    `);
+}
+
+function addAdjustment(participantName, type) {
+    if (!canEdit()) return;
+
+    const amountInput = document.getElementById('adjustmentAmount');
+    const amount = parseFloat(amountInput.value);
+
+    if (!amount || amount <= 0) {
+        showToast('Введите сумму', 'warning');
+        amountInput.focus();
+        return;
+    }
+
+    if (!state.participantAdjustments[participantName]) {
+        state.participantAdjustments[participantName] = [];
+    }
+
+    state.participantAdjustments[participantName].push({
+        type: type,
+        amount: amount,
+        date: new Date().toISOString()
+    });
+
+    saveSession();
+    showToast(type === 'deduction' ? 'Вычет добавлен' : 'Добавление сохранено', 'success');
+    showParticipantCalcModal(participantName);
+    renderPerPerson();
+}
+
+function deleteAdjustment(participantName, index) {
+    if (!canEdit()) return;
+    if (!state.participantAdjustments[participantName]) return;
+
+    state.participantAdjustments[participantName].splice(index, 1);
+    saveSession();
+    showToast('Удалено', 'success');
+    showParticipantCalcModal(participantName);
+    renderPerPerson();
+}
+
+function getParticipantAdjustmentStatus(participantName) {
+    const adjustments = state.participantAdjustments[participantName] || [];
+    if (adjustments.length === 0) return null;
+
+    const totalAdjustment = adjustments.reduce((sum, adj) => {
+        return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+    }, 0);
+
+    if (totalAdjustment < 0) return { type: 'deduction', amount: Math.abs(totalAdjustment) };
+    if (totalAdjustment > 0) return { type: 'addition', amount: totalAdjustment };
+    return null;
+}
+
+function formatDateTime(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit', month: '2-digit', year: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) { return ''; }
+}
+
+// ============================================
+// TYPE FUNCTIONS
+// ============================================
+function showTypeModal(editId = null) {
+    if (!canEdit()) {
+        showToast('Нет прав на редактирование', 'warning');
+        return;
+    }
+
+    const type = editId ? state.types.find(t => t.id === editId) : null;
+    const isEdit = !!type;
+
+    const participantsHtml = state.participants.length > 0 ? `
+        <div class="form-group">
+            <label>Для кого:</label>
+            <div class="participants-checkboxes">
+                <label class="participant-checkbox">
+                    <input type="checkbox" id="typeForAll" ${!type || type.forAll ? 'checked' : ''}>
+                    Для всех
+                </label>
+                ${state.participants.map(p => `
+                    <label class="participant-checkbox">
+                        <input type="checkbox" class="type-participant" value="${escapeHtml(p)}" 
+                            ${type && type.participants && type.participants.includes(p) ? 'checked' : ''}>
+                        ${escapeHtml(p)}
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+    ` : `
+        <div class="form-group">
+            <label>Количество человек:</label>
+            <input type="number" id="typePersonCount" class="input-field" min="1" 
+                value="${type ? type.personCount || state.participantCount || 1 : state.participantCount || 1}">
+        </div>
+    `;
+
+    showModal(`
+        <h3>${isEdit ? 'Редактирование типа' : 'Добавление типа'}</h3>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>Название:</label>
+                <input type="text" id="typeName" class="input-field" value="${type ? escapeHtml(type.name) : ''}" 
+                    placeholder="Салаты, Горячее, Напитки">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Приоритет (1-10):</label>
+                    <input type="number" id="typePriority" class="input-field" min="1" max="10" value="${type ? type.priority : 5}">
+                </div>
+                <div class="form-group color-picker-group">
+                    <label>Цвет:</label>
+                    <input type="color" id="typeColor" value="${type ? type.color : '#e85d6c'}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Норма кг на человека:</label>
+                <input type="number" id="typeNormKg" class="input-field" step="0.01" min="0" 
+                    value="${type ? type.normKg || '' : ''}" placeholder="0.3">
+            </div>
+            ${participantsHtml}
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveType('${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+            </div>
+        </div>
+    `);
+
+    if (state.participants.length > 0) {
+        const forAllCheckbox = document.getElementById('typeForAll');
+        const participantCheckboxes = document.querySelectorAll('.type-participant');
+
+        forAllCheckbox.addEventListener('change', function() {
+            participantCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+                cb.disabled = this.checked;
             });
+        });
 
-            saveSession();
-            render();
-            showToast('Участники обновлены', 'success');
+        if (forAllCheckbox.checked) {
+            participantCheckboxes.forEach(cb => cb.disabled = true);
         }
+    }
 
-        function canEdit() {
-            return !state.isReadonly || state.ownerId === currentUserId;
+    setTimeout(() => document.getElementById('typeName').focus(), 100);
+}
+
+function saveType(editId) {
+    const name = document.getElementById('typeName').value.trim();
+    const priority = parseInt(document.getElementById('typePriority').value) || 5;
+    const color = document.getElementById('typeColor').value;
+    const normKg = parseFloat(document.getElementById('typeNormKg').value) || 0;
+
+    if (!name) {
+        showToast('Введите название', 'warning');
+        return;
+    }
+
+    let forAll = true, participants = [], personCount = state.participantCount;
+
+    if (state.participants.length > 0) {
+        forAll = document.getElementById('typeForAll').checked;
+        if (!forAll) {
+            participants = Array.from(document.querySelectorAll('.type-participant:checked')).map(cb => cb.value);
         }
+    } else {
+        personCount = parseInt(document.getElementById('typePersonCount').value) || 1;
+    }
 
-        // ============================================
-        // MODAL
-        // ============================================
-        function showModal(content) {
-            document.getElementById('modalContent').innerHTML = content;
-            document.getElementById('modalOverlay').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
+    if (editId) {
+        const index = state.types.findIndex(t => t.id === editId);
+        if (index !== -1) {
+            state.types[index] = { ...state.types[index], name, priority, color, normKg, forAll, participants, personCount };
         }
+    } else {
+        state.types.push({
+            id: 'type_' + Date.now(),
+            name, priority, color, normKg, forAll, participants, personCount
+        });
+    }
 
-        function closeModal() {
-            document.getElementById('modalOverlay').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
+    state.types.sort((a, b) => a.priority - b.priority);
+    saveSession();
+    closeModal();
+    render();
+    showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
+}
 
-        // ============================================
-        // CONTINGENCY
-        // ============================================
-        function showContingencyModal() {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
+function deleteType(typeId) {
+    if (!canEdit()) return;
+    if (!confirm('Удалить тип со всеми блюдами?')) return;
 
-            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-            const currentContingency = calculateContingency();
+    const dishIds = state.dishes.filter(d => d.typeId === typeId).map(d => d.id);
+    state.ingredients = state.ingredients.filter(i => !dishIds.includes(i.dishId) && i.typeId !== typeId);
+    state.dishes = state.dishes.filter(d => d.typeId !== typeId);
+    state.types = state.types.filter(t => t.id !== typeId);
 
-            showModal(`
-                <h3>Непредвиденные расходы</h3>
-                <div class="modal-form">
-                    <div class="calc-current">
-                        <div class="calc-current-label">Базовая стоимость всех блюд</div>
-                        <div class="calc-current-amount">${formatMoney(baseCost)}</div>
-                    </div>
+    dishIds.forEach(id => { delete state.norms[id]; delete state.purchased[id]; });
 
-                    <div class="form-group">
-                        <label>Тип расчёта:</label>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="contingencyType" value="percent" 
-                                    ${state.contingency.type === 'percent' ? 'checked' : ''}
-                                    onchange="updateContingencyPreview()">
-                                Процент от суммы
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="contingencyType" value="fixed" 
-                                    ${state.contingency.type === 'fixed' ? 'checked' : ''}
-                                    onchange="updateContingencyPreview()">
-                                Фиксированная сумма
-                            </label>
-                        </div>
-                    </div>
+    saveSession();
+    render();
+    showToast('Удалено', 'success');
+}
 
-                    <div class="form-group" id="percentGroup" ${state.contingency.type === 'fixed' ? 'style="display:none"' : ''}>
-                        <label>Процент (%):</label>
-                        <input type="number" id="contingencyPercent" class="input-field" 
-                            min="0" max="100" step="1" 
-                            value="${state.contingency.type === 'percent' ? state.contingency.value : 10}"
-                            oninput="updateContingencyPreview()">
-                    </div>
+// ============================================
+// DISH FUNCTIONS
+// ============================================
+function showDishModal(editId = null) {
+    if (!canEdit()) {
+        showToast('Нет прав на редактирование', 'warning');
+        return;
+    }
 
-                    <div class="form-group" id="fixedGroup" ${state.contingency.type === 'percent' ? 'style="display:none"' : ''}>
-                        <label>Сумма (руб.):</label>
-                        <input type="number" id="contingencyFixed" class="input-field" 
-                            min="0" step="100" 
-                            value="${state.contingency.type === 'fixed' ? state.contingency.value : 0}"
-                            oninput="updateContingencyPreview()">
-                    </div>
+    const dish = editId ? state.dishes.find(d => d.id === editId) : null;
+    const isEdit = !!dish;
 
-                    <div class="contingency-preview">
-                        <div class="label">Непредвиденные расходы:</div>
-                        <div class="value" id="contingencyPreviewValue">${formatMoney(currentContingency)}</div>
-                    </div>
+    const typesOptions = state.types.map(t =>
+        `<option value="${t.id}" ${dish && dish.typeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+    ).join('');
 
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="clearContingency()">Сбросить</button>
-                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-                        <button class="btn btn-primary" onclick="saveContingency()">Сохранить</button>
-                    </div>
-                </div>
-            `);
+    const participantsHtml = state.participants.length > 0 ? `
+        <div class="form-group">
+            <label>Для кого:</label>
+            <div class="participants-checkboxes">
+                <label class="participant-checkbox">
+                    <input type="checkbox" id="dishForAll" ${!dish || dish.forAll ? 'checked' : ''}>
+                    Для всех
+                </label>
+                ${state.participants.map(p => `
+                    <label class="participant-checkbox">
+                        <input type="checkbox" class="dish-participant" value="${escapeHtml(p)}"
+                            ${dish && dish.participants && dish.participants.includes(p) ? 'checked' : ''}>
+                        ${escapeHtml(p)}
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+    ` : `
+        <div class="form-group">
+            <label>Количество человек:</label>
+            <input type="number" id="dishPersonCount" class="input-field" min="1" 
+                value="${dish ? dish.personCount || state.participantCount || 1 : state.participantCount || 1}">
+        </div>
+    `;
 
-            document.querySelectorAll('input[name="contingencyType"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    document.getElementById('percentGroup').style.display = this.value === 'percent' ? '' : 'none';
-                    document.getElementById('fixedGroup').style.display = this.value === 'fixed' ? '' : 'none';
-                    updateContingencyPreview();
-                });
+    showModal(`
+        <h3>${isEdit ? 'Редактирование блюда' : 'Добавление блюда'}</h3>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>Название:</label>
+                <input type="text" id="dishName" class="input-field" value="${dish ? escapeHtml(dish.name) : ''}" 
+                    placeholder="Оливье, Шашлык">
+            </div>
+            <div class="form-group">
+                <label>Тип:</label>
+                <select id="dishType" class="input-field">
+                    <option value="">-- Без типа --</option>
+                    ${typesOptions}
+                </select>
+            </div>
+            ${participantsHtml}
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveDish('${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+            </div>
+        </div>
+    `);
+
+    if (state.participants.length > 0) {
+        const forAllCheckbox = document.getElementById('dishForAll');
+        const participantCheckboxes = document.querySelectorAll('.dish-participant');
+
+        forAllCheckbox.addEventListener('change', function() {
+            participantCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+                cb.disabled = this.checked;
             });
+        });
+
+        if (forAllCheckbox.checked) {
+            participantCheckboxes.forEach(cb => cb.disabled = true);
         }
+    }
 
-        function updateContingencyPreview() {
-            const type = document.querySelector('input[name="contingencyType"]:checked').value;
-            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-            let contingency = 0;
+    setTimeout(() => document.getElementById('dishName').focus(), 100);
+}
 
-            if (type === 'percent') {
-                const percent = parseFloat(document.getElementById('contingencyPercent').value) || 0;
-                contingency = baseCost * (percent / 100);
-            } else {
-                contingency = parseFloat(document.getElementById('contingencyFixed').value) || 0;
-            }
+function saveDish(editId) {
+    const name = document.getElementById('dishName').value.trim();
+    const typeId = document.getElementById('dishType').value;
 
-            document.getElementById('contingencyPreviewValue').textContent = formatMoney(contingency);
+    if (!name) {
+        showToast('Введите название', 'warning');
+        return;
+    }
+
+    let forAll = true, participants = [], personCount = state.participantCount;
+
+    if (state.participants.length > 0) {
+        forAll = document.getElementById('dishForAll').checked;
+        if (!forAll) {
+            participants = Array.from(document.querySelectorAll('.dish-participant:checked')).map(cb => cb.value);
         }
+    } else {
+        personCount = parseInt(document.getElementById('dishPersonCount').value) || 1;
+    }
 
-        function saveContingency() {
-            const type = document.querySelector('input[name="contingencyType"]:checked').value;
-            let value = 0;
-
-            if (type === 'percent') {
-                value = parseFloat(document.getElementById('contingencyPercent').value) || 0;
-            } else {
-                value = parseFloat(document.getElementById('contingencyFixed').value) || 0;
-            }
-
-            state.contingency = { type, value };
-            saveSession();
-            closeModal();
-            render();
-            showToast('Сохранено', 'success');
+    if (editId) {
+        const index = state.dishes.findIndex(d => d.id === editId);
+        if (index !== -1) {
+            state.dishes[index] = { ...state.dishes[index], name, typeId, forAll, participants, personCount };
         }
+    } else {
+        const newDish = {
+            id: 'dish_' + Date.now(),
+            name, typeId, forAll, participants, personCount,
+            order: state.dishes.length
+        };
+        state.dishes.push(newDish);
 
-        function clearContingency() {
-            state.contingency = { type: 'percent', value: 0 };
-            saveSession();
-            closeModal();
-            render();
-            showToast('Сброшено', 'success');
+        if (state.participants.length > 0) {
+            state.norms[newDish.id] = {};
+            state.participants.forEach(p => { state.norms[newDish.id][p] = 2; });
         }
+    }
 
-        function calculateContingency() {
-            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-            if (state.contingency.type === 'percent') {
-                return baseCost * (state.contingency.value / 100);
-            }
-            return state.contingency.value;
-        }
+    saveSession();
+    closeModal();
+    render();
+    showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
+}
 
-        // ============================================
-        // PARTICIPANT CALCULATION
-        // ============================================
-        function showParticipantCalcModal(participantName) {
-            const perParticipant = calculatePerParticipant();
-            const baseAmount = perParticipant[participantName] || 0;
-            const adjustments = state.participantAdjustments[participantName] || [];
+function deleteDish(dishId) {
+    if (!canEdit()) return;
+    if (!confirm('Удалить блюдо?')) return;
 
-            const totalAdjustment = adjustments.reduce((sum, adj) => {
-                return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
-            }, 0);
-            const finalAmount = baseAmount + totalAdjustment;
+    state.ingredients = state.ingredients.filter(i => i.dishId !== dishId);
+    state.dishes = state.dishes.filter(d => d.id !== dishId);
+    delete state.norms[dishId];
 
-            const historyHtml = adjustments.length > 0 ? `
-                <div class="calc-history">
-                    <h4>История корректировок</h4>
-                    <div class="calc-history-list">
-                        ${adjustments.map((adj, index) => `
-                            <div class="calc-history-item">
-                                <div class="calc-history-info">
-                                    <span class="calc-history-type ${adj.type}">${adj.type === 'deduction' ? 'Вычет' : 'Добавление'}</span>
-                                    <span class="calc-history-amount">${formatMoney(adj.amount)}</span>
-                                    <span class="calc-history-date">${formatDateTime(adj.date)}</span>
-                                </div>
-                                ${canEdit() ? `<button class="btn btn-delete btn-small" onclick="deleteAdjustment('${escapeHtml(participantName)}', ${index})">X</button>` : ''}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : '';
+    saveSession();
+    render();
+    showToast('Удалено', 'success');
+}
 
-            const editControls = canEdit() ? `
+// ============================================
+// INGREDIENT FUNCTIONS
+// ============================================
+function showIngredientModal(parentType, parentId, editId = null) {
+    if (!canEdit()) {
+        showToast('Нет прав на редактирование', 'warning');
+        return;
+    }
+
+    const ingredient = editId ? state.ingredients.find(i => i.id === editId) : null;
+    const isEdit = !!ingredient;
+
+    showModal(`
+        <h3>${isEdit ? 'Редактирование' : 'Добавление'} ингредиента</h3>
+        <div class="modal-form">
+            <div class="form-group">
+                <label>Название:</label>
+                <input type="text" id="ingredientName" class="input-field" 
+                    value="${ingredient ? escapeHtml(ingredient.name) : ''}" placeholder="Картофель, Майонез">
+            </div>
+            <div class="form-group">
+                <label>Магазин:</label>
+                <input type="text" id="ingredientShop" class="input-field" 
+                    value="${ingredient ? escapeHtml(ingredient.shop || '') : ''}" placeholder="Пятёрочка, Магнит">
+            </div>
+            <div class="form-row">
                 <div class="form-group">
-                    <label>Вычесть или добавить (руб.):</label>
-                    <div class="calc-input-group">
-                        <input type="number" id="adjustmentAmount" class="input-field" placeholder="Сумма" min="0" step="0.01">
-                        <button class="btn btn-success" onclick="addAdjustment('${escapeHtml(participantName)}', 'deduction')">Вычесть</button>
-                        <button class="btn btn-warning" onclick="addAdjustment('${escapeHtml(participantName)}', 'addition')">Добавить</button>
-                    </div>
+                    <label>Количество:</label>
+                    <input type="number" id="ingredientQuantity" class="input-field" step="0.01" min="0" 
+                        value="${ingredient ? ingredient.quantity : ''}" placeholder="1.5">
                 </div>
-            ` : '';
-
-            showModal(`
-                <h3>Расчёт для ${escapeHtml(participantName)}</h3>
-                <div class="modal-form">
-                    <div class="calc-current">
-                        <div class="calc-current-label">Базовая сумма</div>
-                        <div class="calc-current-amount">${formatMoney(baseAmount)}</div>
-                    </div>
-                    ${editControls}
-                    <div class="calc-result">
-                        <div class="calc-result-label">Итого к оплате</div>
-                        <div class="calc-result-amount">${formatMoney(finalAmount)}</div>
-                    </div>
-                    ${historyHtml}
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="closeModal()">Закрыть</button>
-                    </div>
-                </div>
-            `);
-        }
-
-        function addAdjustment(participantName, type) {
-            if (!canEdit()) return;
-
-            const amountInput = document.getElementById('adjustmentAmount');
-            const amount = parseFloat(amountInput.value);
-
-            if (!amount || amount <= 0) {
-                showToast('Введите сумму', 'warning');
-                amountInput.focus();
-                return;
-            }
-
-            if (!state.participantAdjustments[participantName]) {
-                state.participantAdjustments[participantName] = [];
-            }
-
-            state.participantAdjustments[participantName].push({
-                type: type,
-                amount: amount,
-                date: new Date().toISOString()
-            });
-
-            saveSession();
-            showToast(type === 'deduction' ? 'Вычет добавлен' : 'Добавление сохранено', 'success');
-            showParticipantCalcModal(participantName);
-            renderPerPerson();
-        }
-
-        function deleteAdjustment(participantName, index) {
-            if (!canEdit()) return;
-            if (!state.participantAdjustments[participantName]) return;
-
-            state.participantAdjustments[participantName].splice(index, 1);
-            saveSession();
-            showToast('Удалено', 'success');
-            showParticipantCalcModal(participantName);
-            renderPerPerson();
-        }
-
-        function getParticipantAdjustmentStatus(participantName) {
-            const adjustments = state.participantAdjustments[participantName] || [];
-            if (adjustments.length === 0) return null;
-
-            const totalAdjustment = adjustments.reduce((sum, adj) => {
-                return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
-            }, 0);
-
-            if (totalAdjustment < 0) return { type: 'deduction', amount: Math.abs(totalAdjustment) };
-            if (totalAdjustment > 0) return { type: 'addition', amount: totalAdjustment };
-            return null;
-        }
-
-        function formatDateTime(dateString) {
-            try {
-                const date = new Date(dateString);
-                return date.toLocaleString('ru-RU', {
-                    day: '2-digit', month: '2-digit', year: '2-digit',
-                    hour: '2-digit', minute: '2-digit'
-                });
-            } catch (e) { return ''; }
-        }
-
-        // ============================================
-        // TYPE FUNCTIONS
-        // ============================================
-        function showTypeModal(editId = null) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            const type = editId ? state.types.find(t => t.id === editId) : null;
-            const isEdit = !!type;
-
-            const participantsHtml = state.participants.length > 0 ? `
                 <div class="form-group">
-                    <label>Для кого:</label>
-                    <div class="participants-checkboxes">
-                        <label class="participant-checkbox">
-                            <input type="checkbox" id="typeForAll" ${!type || type.forAll ? 'checked' : ''}>
-                            Для всех
-                        </label>
-                        ${state.participants.map(p => `
-                            <label class="participant-checkbox">
-                                <input type="checkbox" class="type-participant" value="${escapeHtml(p)}" 
-                                    ${type && type.participants && type.participants.includes(p) ? 'checked' : ''}>
-                                ${escapeHtml(p)}
-                            </label>
-                        `).join('')}
-                    </div>
+                    <label>Ед. измерения:</label>
+                    <select id="ingredientUnit" class="input-field">
+                        <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
+                        <option value="г" ${ingredient && ingredient.unit === 'г' ? 'selected' : ''}>грамм</option>
+                        <option value="л" ${ingredient && ingredient.unit === 'л' ? 'selected' : ''}>литр</option>
+                        <option value="мл" ${ingredient && ingredient.unit === 'мл' ? 'selected' : ''}>миллилитр</option>
+                        <option value="шт" ${ingredient && ingredient.unit === 'шт' ? 'selected' : ''}>штука</option>
+                        <option value="уп" ${ingredient && ingredient.unit === 'уп' ? 'selected' : ''}>упаковка</option>
+                    </select>
                 </div>
-            ` : `
-                <div class="form-group">
-                    <label>Количество человек:</label>
-                    <input type="number" id="typePersonCount" class="input-field" min="1" 
-                        value="${type ? type.personCount || state.participantCount || 1 : state.participantCount || 1}">
-                </div>
-            `;
+            </div>
+            <div class="form-group">
+                <label>Цена за единицу (руб.):</label>
+                <input type="number" id="ingredientPrice" class="input-field" step="0.01" min="0" 
+                    value="${ingredient ? ingredient.price : ''}" placeholder="100">
+            </div>
+            <div class="form-group" style="background: var(--secondary); padding: 12px; border-radius: var(--radius);">
+                <label style="font-weight: 600;">Итого: <span id="ingredientTotal" style="color: var(--primary); font-size: 1.2rem;">0</span> руб.</label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
+                <button class="btn btn-primary" onclick="saveIngredient('${parentType}', '${parentId}', '${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+            </div>
+        </div>
+    `);
 
-            showModal(`
-                <h3>${isEdit ? 'Редактирование типа' : 'Добавление типа'}</h3>
-                <div class="modal-form">
-                    <div class="form-group">
-                        <label>Название:</label>
-                        <input type="text" id="typeName" class="input-field" value="${type ? escapeHtml(type.name) : ''}" 
-                            placeholder="Салаты, Горячее, Напитки">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Приоритет (1-10):</label>
-                            <input type="number" id="typePriority" class="input-field" min="1" max="10" value="${type ? type.priority : 5}">
-                        </div>
-                        <div class="form-group color-picker-group">
-                            <label>Цвет:</label>
-                            <input type="color" id="typeColor" value="${type ? type.color : '#e85d6c'}">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Норма кг на человека:</label>
-                        <input type="number" id="typeNormKg" class="input-field" step="0.01" min="0" 
-                            value="${type ? type.normKg || '' : ''}" placeholder="0.3">
-                    </div>
-                    ${participantsHtml}
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-                        <button class="btn btn-primary" onclick="saveType('${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
-                    </div>
-                </div>
-            `);
+    const updateTotal = () => {
+        const qty = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
+        const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
+        document.getElementById('ingredientTotal').textContent = (qty * price).toFixed(2);
+    };
 
-            if (state.participants.length > 0) {
-                const forAllCheckbox = document.getElementById('typeForAll');
-                const participantCheckboxes = document.querySelectorAll('.type-participant');
+    document.getElementById('ingredientQuantity').addEventListener('input', updateTotal);
+    document.getElementById('ingredientPrice').addEventListener('input', updateTotal);
+    updateTotal();
 
-                forAllCheckbox.addEventListener('change', function() {
-                    participantCheckboxes.forEach(cb => {
-                        cb.checked = this.checked;
-                        cb.disabled = this.checked;
-                    });
-                });
+    setTimeout(() => document.getElementById('ingredientName').focus(), 100);
+}
 
-                if (forAllCheckbox.checked) {
-                    participantCheckboxes.forEach(cb => cb.disabled = true);
-                }
-            }
+function saveIngredient(parentType, parentId, editId) {
+    const name = document.getElementById('ingredientName').value.trim();
+    const shop = document.getElementById('ingredientShop').value.trim();
+    const quantity = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
+    const unit = document.getElementById('ingredientUnit').value;
+    const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
 
-            setTimeout(() => document.getElementById('typeName').focus(), 100);
+    if (!name) { showToast('Введите название', 'warning'); return; }
+    if (quantity <= 0) { showToast('Укажите количество', 'warning'); return; }
+
+    if (editId) {
+        const index = state.ingredients.findIndex(i => i.id === editId);
+        if (index !== -1) {
+            state.ingredients[index] = { ...state.ingredients[index], name, shop, quantity, unit, price };
         }
+    } else {
+        state.ingredients.push({
+            id: 'ing_' + Date.now(),
+            name, shop, quantity, unit, price,
+            typeId: parentType === 'type' ? parentId : null,
+            dishId: parentType === 'dish' ? parentId : null,
+            order: state.ingredients.length
+        });
+    }
 
-        function saveType(editId) {
-            const name = document.getElementById('typeName').value.trim();
-            const priority = parseInt(document.getElementById('typePriority').value) || 5;
-            const color = document.getElementById('typeColor').value;
-            const normKg = parseFloat(document.getElementById('typeNormKg').value) || 0;
+    saveSession();
+    closeModal();
+    render();
+    showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
+}
 
-            if (!name) {
-                showToast('Введите название', 'warning');
-                return;
-            }
+function deleteIngredient(ingredientId) {
+    if (!canEdit()) return;
+    state.ingredients = state.ingredients.filter(i => i.id !== ingredientId);
+    saveSession();
+    render();
+}
 
-            let forAll = true, participants = [], personCount = state.participantCount;
+// ============================================
+// RENDER
+// ============================================
+function render() {
+    const now = Date.now();
+    if (now - lastRenderTime < RENDER_THROTTLE) {
+        return;
+    }
+    lastRenderTime = now;
+    
+    renderMainField();
+    renderPerPerson();
+    renderNormsTable();
+    renderShoppingList();
+    renderSummary();
+}
 
-            if (state.participants.length > 0) {
-                forAll = document.getElementById('typeForAll').checked;
-                if (!forAll) {
-                    participants = Array.from(document.querySelectorAll('.type-participant:checked')).map(cb => cb.value);
-                }
+function renderMainField() {
+    const main = document.getElementById('mainField');
+    const editable = canEdit();
+    let html = '';
+
+    state.types.forEach((type, index) => {
+        html += `<div class="type-container fade-in" style="animation-delay: ${index * 0.05}s">`;
+        html += renderType(type, editable);
+        html += `</div>`;
+    });
+
+    const dishesWithoutType = state.dishes.filter(d => !d.typeId);
+    dishesWithoutType.forEach((dish, index) => {
+        html += `<div class="dish-container fade-in" style="animation-delay: ${(state.types.length + index) * 0.05}s">`;
+        html += renderDish(dish, editable);
+        html += `</div>`;
+    });
+
+    main.innerHTML = html || '<p class="empty-message">Начните с добавления типа или блюда</p>';
+}
+
+function renderType(type, editable) {
+    const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
+    const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+    const dishCount = typeDishes.length;
+
+    let html = `
+        <div class="type-row" style="background: linear-gradient(135deg, ${type.color} 0%, ${adjustColor(type.color, -20)} 100%)" 
+            onclick="${editable ? `showTypeModal('${type.id}')` : ''}">
+            <span class="type-name">
+                ${escapeHtml(type.name)}
+                <span class="type-badge">${dishCount} ${pluralize(dishCount, 'блюдо', 'блюда', 'блюд')}</span>
+                ${type.normKg ? `<span class="type-badge">${type.normKg} кг/чел</span>` : ''}
+            </span>
+            <div class="type-actions" onclick="event.stopPropagation()">
+                ${editable ? `
+                    <button class="btn btn-add btn-small" onclick="showIngredientModal('type', '${type.id}')">+ Ингредиент</button>
+                    <button class="btn btn-delete btn-small" onclick="deleteType('${type.id}')">Удалить</button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+    typeIngredients.forEach(ing => { html += renderIngredient(ing, editable); });
+
+    if (typeIngredients.length > 0) {
+        const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+        const perPerson = calculatePerPerson(total, type);
+        html += `
+            <div class="total-row"><span>Итого за тип:</span><span>${formatMoney(total)}</span></div>
+            <div class="per-each-row"><span>С каждого:</span><span>${formatMoney(perPerson)}</span></div>
+        `;
+    }
+
+    typeDishes.forEach(dish => { html += renderDish(dish, editable); });
+    return html;
+}
+
+function renderDish(dish, editable) {
+    const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
+
+    let html = `
+        <div class="dish-row" onclick="${editable ? `showDishModal('${dish.id}')` : ''}">
+            <span class="dish-name">${escapeHtml(dish.name)}</span>
+            <div class="dish-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')">${getParticipantsCount(dish)} чел.</button>
+                ${editable ? `
+                    <button class="btn btn-add btn-small" onclick="showIngredientModal('dish', '${dish.id}')">+ Ингредиент</button>
+                    <button class="btn btn-delete btn-small" onclick="deleteDish('${dish.id}')">Удалить</button>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+    dishIngredients.forEach(ing => { html += renderIngredient(ing, editable); });
+
+    if (dishIngredients.length > 0) {
+        const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+        const perPerson = calculatePerPersonForDish(dish, total);
+        html += `
+            <div class="total-row"><span>Итого за блюдо:</span><span>${formatMoney(total)}</span></div>
+            <div class="per-each-row"><span>С каждого:</span><span>${formatMoney(perPerson)}</span></div>
+        `;
+    }
+    return html;
+}
+
+function renderIngredient(ing, editable) {
+    const total = ing.quantity * ing.price;
+    return `
+        <div class="ingredient-row" onclick="${editable ? `showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')` : ''}">
+            <span class="ingredient-name">${escapeHtml(ing.name)}</span>
+            <span class="ingredient-quantity">${ing.quantity} ${ing.unit}</span>
+            <span class="ingredient-price">${formatMoney(ing.price)}</span>
+            <span class="ingredient-price">${formatMoney(total)}</span>
+            <span class="ingredient-shop">${escapeHtml(ing.shop || '-')}</span>
+            ${editable ? `<button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">X</button>` : '<span></span>'}
+        </div>
+    `;
+}
+
+function getParticipantsCount(dish) {
+    if (state.participants.length > 0) {
+        if (dish.forAll) return state.participants.length;
+        return dish.participants ? dish.participants.length : 0;
+    }
+    return dish.personCount || state.participantCount || 0;
+}
+
+function showParticipantsInfo(dishId) {
+    const dish = state.dishes.find(d => d.id === dishId);
+    if (!dish) return;
+
+    let info = '';
+    if (state.participants.length > 0) {
+        if (dish.forAll) info = 'Для всех: ' + state.participants.join(', ');
+        else info = 'Для: ' + (dish.participants?.length > 0 ? dish.participants.join(', ') : 'никого');
+    } else {
+        info = 'Количество: ' + (dish.personCount || state.participantCount || 'не указано');
+    }
+    alert(info);
+}
+
+// ============================================
+// CALCULATIONS - ИСПРАВЛЕННАЯ ЛОГИКА
+// ============================================
+function getNormValue(dishId, participant) {
+    if (state.norms[dishId] && state.norms[dishId][participant] !== undefined) {
+        return state.norms[dishId][participant];
+    }
+    return 2;
+}
+
+function calculatePerPerson(total, entity) {
+    if (state.participants.length > 0) {
+        if (entity.forAll) return total / state.participants.length;
+        return entity.participants?.length > 0 ? total / entity.participants.length : total;
+    }
+    return entity.personCount > 0 ? total / entity.personCount : total;
+}
+
+function calculatePerPersonForDish(dish, total) {
+    if (state.participants.length > 0) {
+        let totalMultiplier = 0;
+        state.participants.forEach(p => {
+            const normValue = getNormValue(dish.id, p);
+            if (normValue === 2) totalMultiplier += 1;
+            else if (normValue === 1) totalMultiplier += 0.5;
+        });
+        if (totalMultiplier === 0) return 0;
+        return total / totalMultiplier;
+    }
+    return dish.personCount > 0 ? total / dish.personCount : total;
+}
+
+// ИСПРАВЛЕННАЯ функция расчета кг для участника по блюду
+function calculatePersonDishKg(dish, participant, type) {
+    if (!type || !type.normKg) return { kg: 0, percent: 0 };
+
+    const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+    const dishNormValue = getNormValue(dish.id, participant);
+    if (dishNormValue === 0) return { kg: 0, percent: 0 };
+
+    // Собираем все значения норм для этого участника в этом типе
+    let hasAnyBudu = false;  // есть ли хоть одно "Буду" (2)
+    let totalWeight = 0;
+    const dishWeights = {};
+
+    // Первый проход - определяем есть ли "Буду"
+    typeDishes.forEach(d => {
+        const normValue = getNormValue(d.id, participant);
+        if (normValue === 2) hasAnyBudu = true;
+    });
+
+    // Второй проход - рассчитываем веса
+    typeDishes.forEach(d => {
+        const normValue = getNormValue(d.id, participant);
+        let weight = 0;
+        
+        if (normValue === 0) {
+            weight = 0;
+        } else if (normValue === 2) {
+            // "Буду" = полный вес
+            weight = 1;
+        } else if (normValue === 1) {
+            // "Возможно"
+            if (hasAnyBudu) {
+                // Если есть хоть одно "Буду", то "Возможно" = 0.5 от "Буду"
+                weight = 0.5;
             } else {
-                personCount = parseInt(document.getElementById('typePersonCount').value) || 1;
-            }
-
-            if (editId) {
-                const index = state.types.findIndex(t => t.id === editId);
-                if (index !== -1) {
-                    state.types[index] = { ...state.types[index], name, priority, color, normKg, forAll, participants, personCount };
-                }
-            } else {
-                state.types.push({
-                    id: 'type_' + Date.now(),
-                    name, priority, color, normKg, forAll, participants, personCount
-                });
-            }
-
-            state.types.sort((a, b) => a.priority - b.priority);
-            saveSession();
-            closeModal();
-            render();
-            showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
-        }
-
-        function deleteType(typeId) {
-            if (!canEdit()) return;
-            if (!confirm('Удалить тип со всеми блюдами?')) return;
-
-            const dishIds = state.dishes.filter(d => d.typeId === typeId).map(d => d.id);
-            state.ingredients = state.ingredients.filter(i => !dishIds.includes(i.dishId) && i.typeId !== typeId);
-            state.dishes = state.dishes.filter(d => d.typeId !== typeId);
-            state.types = state.types.filter(t => t.id !== typeId);
-
-            dishIds.forEach(id => { delete state.norms[id]; delete state.purchased[id]; });
-
-            saveSession();
-            render();
-            showToast('Удалено', 'success');
-        }
-
-        // ============================================
-        // DISH FUNCTIONS
-        // ============================================
-        function showDishModal(editId = null) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            const dish = editId ? state.dishes.find(d => d.id === editId) : null;
-            const isEdit = !!dish;
-
-            const typesOptions = state.types.map(t =>
-                `<option value="${t.id}" ${dish && dish.typeId === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
-            ).join('');
-
-            const participantsHtml = state.participants.length > 0 ? `
-                <div class="form-group">
-                    <label>Для кого:</label>
-                    <div class="participants-checkboxes">
-                        <label class="participant-checkbox">
-                            <input type="checkbox" id="dishForAll" ${!dish || dish.forAll ? 'checked' : ''}>
-                            Для всех
-                        </label>
-                        ${state.participants.map(p => `
-                            <label class="participant-checkbox">
-                                <input type="checkbox" class="dish-participant" value="${escapeHtml(p)}"
-                                    ${dish && dish.participants && dish.participants.includes(p) ? 'checked' : ''}>
-                                ${escapeHtml(p)}
-                            </label>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : `
-                <div class="form-group">
-                    <label>Количество человек:</label>
-                    <input type="number" id="dishPersonCount" class="input-field" min="1" 
-                        value="${dish ? dish.personCount || state.participantCount || 1 : state.participantCount || 1}">
-                </div>
-            `;
-
-            showModal(`
-                <h3>${isEdit ? 'Редактирование блюда' : 'Добавление блюда'}</h3>
-                <div class="modal-form">
-                    <div class="form-group">
-                        <label>Название:</label>
-                        <input type="text" id="dishName" class="input-field" value="${dish ? escapeHtml(dish.name) : ''}" 
-                            placeholder="Оливье, Шашлык">
-                    </div>
-                    <div class="form-group">
-                        <label>Тип:</label>
-                        <select id="dishType" class="input-field">
-                            <option value="">-- Без типа --</option>
-                            ${typesOptions}
-                        </select>
-                    </div>
-                    ${participantsHtml}
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-                        <button class="btn btn-primary" onclick="saveDish('${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
-                    </div>
-                </div>
-            `);
-
-            if (state.participants.length > 0) {
-                const forAllCheckbox = document.getElementById('dishForAll');
-                const participantCheckboxes = document.querySelectorAll('.dish-participant');
-
-                forAllCheckbox.addEventListener('change', function() {
-                    participantCheckboxes.forEach(cb => {
-                        cb.checked = this.checked;
-                        cb.disabled = this.checked;
-                    });
-                });
-
-                if (forAllCheckbox.checked) {
-                    participantCheckboxes.forEach(cb => cb.disabled = true);
-                }
-            }
-
-            setTimeout(() => document.getElementById('dishName').focus(), 100);
-        }
-
-        function saveDish(editId) {
-            const name = document.getElementById('dishName').value.trim();
-            const typeId = document.getElementById('dishType').value;
-
-            if (!name) {
-                showToast('Введите название', 'warning');
-                return;
-            }
-
-            let forAll = true, participants = [], personCount = state.participantCount;
-
-            if (state.participants.length > 0) {
-                forAll = document.getElementById('dishForAll').checked;
-                if (!forAll) {
-                    participants = Array.from(document.querySelectorAll('.dish-participant:checked')).map(cb => cb.value);
-                }
-            } else {
-                personCount = parseInt(document.getElementById('dishPersonCount').value) || 1;
-            }
-
-            if (editId) {
-                const index = state.dishes.findIndex(d => d.id === editId);
-                if (index !== -1) {
-                    state.dishes[index] = { ...state.dishes[index], name, typeId, forAll, participants, personCount };
-                }
-            } else {
-                const newDish = {
-                    id: 'dish_' + Date.now(),
-                    name, typeId, forAll, participants, personCount,
-                    order: state.dishes.length
-                };
-                state.dishes.push(newDish);
-
-                if (state.participants.length > 0) {
-                    state.norms[newDish.id] = {};
-                    state.participants.forEach(p => { state.norms[newDish.id][p] = 2; });
-                }
-            }
-
-            saveSession();
-            closeModal();
-            render();
-            showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
-        }
-
-        function deleteDish(dishId) {
-            if (!canEdit()) return;
-            if (!confirm('Удалить блюдо?')) return;
-
-            state.ingredients = state.ingredients.filter(i => i.dishId !== dishId);
-            state.dishes = state.dishes.filter(d => d.id !== dishId);
-            delete state.norms[dishId];
-
-            saveSession();
-            render();
-            showToast('Удалено', 'success');
-        }
-
-        // ============================================
-        // INGREDIENT FUNCTIONS
-        // ============================================
-        function showIngredientModal(parentType, parentId, editId = null) {
-            if (!canEdit()) {
-                showToast('Нет прав на редактирование', 'warning');
-                return;
-            }
-
-            const ingredient = editId ? state.ingredients.find(i => i.id === editId) : null;
-            const isEdit = !!ingredient;
-
-            showModal(`
-                <h3>${isEdit ? 'Редактирование' : 'Добавление'} ингредиента</h3>
-                <div class="modal-form">
-                    <div class="form-group">
-                        <label>Название:</label>
-                        <input type="text" id="ingredientName" class="input-field" 
-                            value="${ingredient ? escapeHtml(ingredient.name) : ''}" placeholder="Картофель, Майонез">
-                    </div>
-                    <div class="form-group">
-                        <label>Магазин:</label>
-                        <input type="text" id="ingredientShop" class="input-field" 
-                            value="${ingredient ? escapeHtml(ingredient.shop || '') : ''}" placeholder="Пятёрочка, Магнит">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Количество:</label>
-                            <input type="number" id="ingredientQuantity" class="input-field" step="0.01" min="0" 
-                                value="${ingredient ? ingredient.quantity : ''}" placeholder="1.5">
-                        </div>
-                        <div class="form-group">
-                            <label>Ед. измерения:</label>
-                            <select id="ingredientUnit" class="input-field">
-                                <option value="кг" ${ingredient && ingredient.unit === 'кг' ? 'selected' : ''}>килограмм</option>
-                                <option value="г" ${ingredient && ingredient.unit === 'г' ? 'selected' : ''}>грамм</option>
-                                <option value="л" ${ingredient && ingredient.unit === 'л' ? 'selected' : ''}>литр</option>
-                                <option value="мл" ${ingredient && ingredient.unit === 'мл' ? 'selected' : ''}>миллилитр</option>
-                                <option value="шт" ${ingredient && ingredient.unit === 'шт' ? 'selected' : ''}>штука</option>
-                                <option value="уп" ${ingredient && ingredient.unit === 'уп' ? 'selected' : ''}>упаковка</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Цена за единицу (руб.):</label>
-                        <input type="number" id="ingredientPrice" class="input-field" step="0.01" min="0" 
-                            value="${ingredient ? ingredient.price : ''}" placeholder="100">
-                    </div>
-                    <div class="form-group" style="background: var(--secondary); padding: 12px; border-radius: var(--radius);">
-                        <label style="font-weight: 600;">Итого: <span id="ingredientTotal" style="color: var(--primary); font-size: 1.2rem;">0</span> руб.</label>
-                    </div>
-                    <div class="modal-actions">
-                        <button class="btn btn-secondary" onclick="closeModal()">Отмена</button>
-                        <button class="btn btn-primary" onclick="saveIngredient('${parentType}', '${parentId}', '${editId || ''}')">${isEdit ? 'Сохранить' : 'Добавить'}</button>
-                    </div>
-                </div>
-            `);
-
-            const updateTotal = () => {
-                const qty = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
-                const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
-                document.getElementById('ingredientTotal').textContent = (qty * price).toFixed(2);
-            };
-
-            document.getElementById('ingredientQuantity').addEventListener('input', updateTotal);
-            document.getElementById('ingredientPrice').addEventListener('input', updateTotal);
-            updateTotal();
-
-            setTimeout(() => document.getElementById('ingredientName').focus(), 100);
-        }
-
-        function saveIngredient(parentType, parentId, editId) {
-            const name = document.getElementById('ingredientName').value.trim();
-            const shop = document.getElementById('ingredientShop').value.trim();
-            const quantity = parseFloat(document.getElementById('ingredientQuantity').value) || 0;
-            const unit = document.getElementById('ingredientUnit').value;
-            const price = parseFloat(document.getElementById('ingredientPrice').value) || 0;
-
-            if (!name) { showToast('Введите название', 'warning'); return; }
-            if (quantity <= 0) { showToast('Укажите количество', 'warning'); return; }
-
-            if (editId) {
-                const index = state.ingredients.findIndex(i => i.id === editId);
-                if (index !== -1) {
-                    state.ingredients[index] = { ...state.ingredients[index], name, shop, quantity, unit, price };
-                }
-            } else {
-                state.ingredients.push({
-                    id: 'ing_' + Date.now(),
-                    name, shop, quantity, unit, price,
-                    typeId: parentType === 'type' ? parentId : null,
-                    dishId: parentType === 'dish' ? parentId : null,
-                    order: state.ingredients.length
-                });
-            }
-
-            saveSession();
-            closeModal();
-            render();
-            showToast(editId ? 'Обновлено' : 'Добавлено', 'success');
-        }
-
-        function deleteIngredient(ingredientId) {
-            if (!canEdit()) return;
-            state.ingredients = state.ingredients.filter(i => i.id !== ingredientId);
-            saveSession();
-            render();
-        }
-
-        // ============================================
-        // RENDER - с плавными обновлениями
-        // ============================================
-        function render() {
-            if (isRendering) {
-                pendingRender = true;
-                return;
-            }
-            
-            isRendering = true;
-            
-            renderMainField();
-            renderPerPerson();
-            renderNormsTable();
-            renderShoppingList();
-            renderSummary();
-            
-            isRendering = false;
-            
-            if (pendingRender) {
-                pendingRender = false;
-                requestAnimationFrame(() => render());
+                // Если ВСЕ блюда "Возможно", делим поровну но с коэффициентом 0.5
+                // Сначала считаем как равное распределение, потом умножим на 0.5
+                weight = 1; // будет скорректировано ниже
             }
         }
         
-        // Плавный рендер для удаленных обновлений
-        function renderSmooth() {
-            requestAnimationFrame(() => {
-                render();
+        dishWeights[d.id] = weight;
+        totalWeight += weight;
+    });
+
+    if (totalWeight === 0) return { kg: 0, percent: 0 };
+
+    // Если все "Возможно" (нет ни одного "Буду"), применяем коэффициент 0.5 к итоговому кг
+    const allMaybeMultiplier = hasAnyBudu ? 1 : 0.5;
+
+    const calories = state.participantCalories[participant] || 2000;
+    const personalMultiplier = calories / 2000;
+    const personTypeNorm = type.normKg * personalMultiplier;
+    const dishWeight = dishWeights[dish.id];
+    const percent = (dishWeight / totalWeight) * 100;
+    const kg = personTypeNorm * (dishWeight / totalWeight) * allMaybeMultiplier;
+
+    return { kg, percent: percent * allMaybeMultiplier };
+}
+
+function calculatePersonTypeKg(type, participant) {
+    const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+    let total = 0;
+    typeDishes.forEach(dish => {
+        const kgData = calculatePersonDishKg(dish, participant, type);
+        total += kgData.kg;
+    });
+    return total;
+}
+
+function calculateTypeTotalKg(type) {
+    let total = 0;
+    state.participants.forEach(p => { total += calculatePersonTypeKg(type, p); });
+    return total;
+}
+
+function calculateDishTotalKg(dish, type) {
+    let total = 0;
+    state.participants.forEach(p => {
+        const kgData = calculatePersonDishKg(dish, p, type);
+        total += kgData.kg;
+    });
+    return total;
+}
+
+function calculatePerParticipant() {
+    const perParticipant = {};
+    const contingency = calculateContingency();
+    const participantsCount = state.participants.length || state.participantCount || 1;
+    const contingencyPerPerson = contingency / participantsCount;
+
+    state.participants.forEach(p => perParticipant[p] = contingencyPerPerson);
+
+    state.dishes.forEach(dish => {
+        const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
+        const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+
+        if (total > 0) {
+            let participants = dish.forAll ? state.participants : (dish.participants || []);
+            let participantMultipliers = {};
+            let totalMultiplier = 0;
+
+            participants.forEach(p => {
+                const normValue = getNormValue(dish.id, p);
+                if (normValue === 2) { participantMultipliers[p] = 1; totalMultiplier += 1; }
+                else if (normValue === 1) { participantMultipliers[p] = 0.5; totalMultiplier += 0.5; }
             });
-        }
 
-        function renderMainField() {
-            const main = document.getElementById('mainField');
-            const editable = canEdit();
-            let html = '';
-
-            state.types.forEach((type, index) => {
-                html += `<div class="type-container" style="opacity: 0; animation: fadeIn 0.3s ease forwards; animation-delay: ${index * 0.03}s">`;
-                html += renderType(type, editable);
-                html += `</div>`;
-            });
-
-            const dishesWithoutType = state.dishes.filter(d => !d.typeId);
-            dishesWithoutType.forEach((dish, index) => {
-                html += `<div class="dish-container" style="opacity: 0; animation: fadeIn 0.3s ease forwards; animation-delay: ${(state.types.length + index) * 0.03}s">`;
-                html += renderDish(dish, editable);
-                html += `</div>`;
-            });
-
-            main.innerHTML = html || '<p class="empty-message">Начните с добавления типа или блюда</p>';
-        }
-
-        function renderType(type, editable) {
-            const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
-            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
-            const dishCount = typeDishes.length;
-
-            let html = `
-                <div class="type-row" style="background: linear-gradient(135deg, ${type.color} 0%, ${adjustColor(type.color, -20)} 100%)" 
-                    onclick="${editable ? `showTypeModal('${type.id}')` : ''}">
-                    <span class="type-name">
-                        ${escapeHtml(type.name)}
-                        <span class="type-badge">${dishCount} ${pluralize(dishCount, 'блюдо', 'блюда', 'блюд')}</span>
-                        ${type.normKg ? `<span class="type-badge">${type.normKg} кг/чел</span>` : ''}
-                    </span>
-                    <div class="type-actions" onclick="event.stopPropagation()">
-                        ${editable ? `
-                            <button class="btn btn-add btn-small" onclick="showIngredientModal('type', '${type.id}')">+ Ингредиент</button>
-                            <button class="btn btn-delete btn-small" onclick="deleteType('${type.id}')">Удалить</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-
-            typeIngredients.forEach(ing => { html += renderIngredient(ing, editable); });
-
-            if (typeIngredients.length > 0) {
-                const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-                const perPerson = calculatePerPerson(total, type);
-                html += `
-                    <div class="total-row"><span>Итого за тип:</span><span>${formatMoney(total)}</span></div>
-                    <div class="per-each-row"><span>С каждого:</span><span>${formatMoney(perPerson)}</span></div>
-                `;
-            }
-
-            typeDishes.forEach(dish => { html += renderDish(dish, editable); });
-            return html;
-        }
-
-        function renderDish(dish, editable) {
-            const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
-
-            let html = `
-                <div class="dish-row" onclick="${editable ? `showDishModal('${dish.id}')` : ''}">
-                    <span class="dish-name">${escapeHtml(dish.name)}</span>
-                    <div class="dish-actions" onclick="event.stopPropagation()">
-                        <button class="btn btn-ghost btn-small" onclick="showParticipantsInfo('${dish.id}')">${getParticipantsCount(dish)} чел.</button>
-                        ${editable ? `
-                            <button class="btn btn-add btn-small" onclick="showIngredientModal('dish', '${dish.id}')">+ Ингредиент</button>
-                            <button class="btn btn-delete btn-small" onclick="deleteDish('${dish.id}')">Удалить</button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-
-            dishIngredients.forEach(ing => { html += renderIngredient(ing, editable); });
-
-            if (dishIngredients.length > 0) {
-                const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-                const perPerson = calculatePerPersonForDish(dish, total);
-                html += `
-                    <div class="total-row"><span>Итого за блюдо:</span><span>${formatMoney(total)}</span></div>
-                    <div class="per-each-row"><span>С каждого:</span><span>${formatMoney(perPerson)}</span></div>
-                `;
-            }
-            return html;
-        }
-
-        function renderIngredient(ing, editable) {
-            const total = ing.quantity * ing.price;
-            return `
-                <div class="ingredient-row" onclick="${editable ? `showIngredientModal('${ing.typeId ? 'type' : 'dish'}', '${ing.typeId || ing.dishId}', '${ing.id}')` : ''}">
-                    <span class="ingredient-name">${escapeHtml(ing.name)}</span>
-                    <span class="ingredient-quantity">${ing.quantity} ${ing.unit}</span>
-                    <span class="ingredient-price">${formatMoney(ing.price)}</span>
-                    <span class="ingredient-price">${formatMoney(total)}</span>
-                    <span class="ingredient-shop">${escapeHtml(ing.shop || '-')}</span>
-                    ${editable ? `<button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteIngredient('${ing.id}')">X</button>` : '<span></span>'}
-                </div>
-            `;
-        }
-
-        function getParticipantsCount(dish) {
-            if (state.participants.length > 0) {
-                if (dish.forAll) return state.participants.length;
-                return dish.participants ? dish.participants.length : 0;
-            }
-            return dish.personCount || state.participantCount || 0;
-        }
-
-        function showParticipantsInfo(dishId) {
-            const dish = state.dishes.find(d => d.id === dishId);
-            if (!dish) return;
-
-            let info = '';
-            if (state.participants.length > 0) {
-                if (dish.forAll) info = 'Для всех: ' + state.participants.join(', ');
-                else info = 'Для: ' + (dish.participants?.length > 0 ? dish.participants.join(', ') : 'никого');
-            } else {
-                info = 'Количество: ' + (dish.personCount || state.participantCount || 'не указано');
-            }
-            alert(info);
-        }
-
-        // ============================================
-        // CALCULATIONS - ИСПРАВЛЕННЫЙ ПОДСЧЕТ
-        // ============================================
-        function getNormValue(dishId, participant) {
-            if (state.norms[dishId] && state.norms[dishId][participant] !== undefined) {
-                return state.norms[dishId][participant];
-            }
-            return 2;
-        }
-
-        function calculatePerPerson(total, entity) {
-            if (state.participants.length > 0) {
-                if (entity.forAll) return total / state.participants.length;
-                return entity.participants?.length > 0 ? total / entity.participants.length : total;
-            }
-            return entity.personCount > 0 ? total / entity.personCount : total;
-        }
-
-        function calculatePerPersonForDish(dish, total) {
-            if (state.participants.length > 0) {
-                let totalMultiplier = 0;
-                const dishParticipants = dish.forAll ? state.participants : (dish.participants || []);
-                
-                // Проверяем, все ли участники имеют статус "Возможно" (1)
-                let allMaybe = true;
-                let hasSomeParticipation = false;
-                
-                dishParticipants.forEach(p => {
-                    const normValue = getNormValue(dish.id, p);
-                    if (normValue === 2) {
-                        allMaybe = false;
-                        totalMultiplier += 1;
-                        hasSomeParticipation = true;
-                    } else if (normValue === 1) {
-                        hasSomeParticipation = true;
-                        if (!allMaybe) {
-                            totalMultiplier += 0.5;
-                        }
+            if (totalMultiplier > 0) {
+                const perUnit = total / totalMultiplier;
+                Object.keys(participantMultipliers).forEach(p => {
+                    if (perParticipant[p] !== undefined) {
+                        perParticipant[p] += perUnit * participantMultipliers[p];
                     }
                 });
-                
-                // Если все участники выбрали "Возможно", считаем как 0.5 от равного распределения
-                if (allMaybe && hasSomeParticipation) {
-                    // Количество участников с "Возможно"
-                    let maybeCount = 0;
-                    dishParticipants.forEach(p => {
-                        const normValue = getNormValue(dish.id, p);
-                        if (normValue === 1) maybeCount++;
-                    });
-                    
-                    if (maybeCount > 0) {
-                        // Каждый платит как будто участвует на 0.5, но делим на всех
-                        totalMultiplier = maybeCount * 0.5;
-                    }
-                }
-                
-                if (totalMultiplier === 0) return 0;
-                return total / totalMultiplier;
-            }
-            return dish.personCount > 0 ? total / dish.personCount : total;
-        }
-
-        function calculatePersonDishKg(dish, participant, type) {
-            if (!type || !type.normKg) return { kg: 0, percent: 0 };
-
-            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
-            const dishNormValue = getNormValue(dish.id, participant);
-            if (dishNormValue === 0) return { kg: 0, percent: 0 };
-
-            let totalWeight = 0;
-            const dishWeights = {};
-            
-            // Проверяем, все ли блюда имеют статус "Возможно"
-            let allMaybe = true;
-
-            typeDishes.forEach(d => {
-                const normValue = getNormValue(d.id, participant);
-                if (normValue === 2) {
-                    allMaybe = false;
-                }
-            });
-
-            typeDishes.forEach(d => {
-                const normValue = getNormValue(d.id, participant);
-                let weight;
-                
-                if (allMaybe) {
-                    // Если все "Возможно", каждое блюдо получает вес 0.5
-                    weight = normValue === 1 ? 0.5 : 0;
-                } else {
-                    // Стандартный расчет
-                    weight = normValue === 2 ? 2 : normValue === 1 ? 1 : 0;
-                }
-                
-                dishWeights[d.id] = weight;
-                totalWeight += weight;
-            });
-
-            if (totalWeight === 0) return { kg: 0, percent: 0 };
-
-            const calories = state.participantCalories[participant] || 2000;
-            const personalMultiplier = calories / 2000;
-            const personTypeNorm = type.normKg * personalMultiplier;
-            const dishWeight = dishWeights[dish.id];
-            const percent = (dishWeight / totalWeight) * 100;
-            const kg = personTypeNorm * (dishWeight / totalWeight);
-
-            return { kg, percent };
-        }
-
-        function calculatePersonTypeKg(type, participant) {
-            const typeDishes = state.dishes.filter(d => d.typeId === type.id);
-            let total = 0;
-            typeDishes.forEach(dish => {
-                const kgData = calculatePersonDishKg(dish, participant, type);
-                total += kgData.kg;
-            });
-            return total;
-        }
-
-        function calculateTypeTotalKg(type) {
-            let total = 0;
-            state.participants.forEach(p => { total += calculatePersonTypeKg(type, p); });
-            return total;
-        }
-
-        function calculateDishTotalKg(dish, type) {
-            let total = 0;
-            state.participants.forEach(p => {
-                const kgData = calculatePersonDishKg(dish, p, type);
-                total += kgData.kg;
-            });
-            return total;
-        }
-
-        function calculatePerParticipant() {
-            const perParticipant = {};
-            const contingency = calculateContingency();
-            const participantsCount = state.participants.length || state.participantCount || 1;
-            const contingencyPerPerson = contingency / participantsCount;
-
-            state.participants.forEach(p => perParticipant[p] = contingencyPerPerson);
-
-            state.dishes.forEach(dish => {
-                const dishIngredients = state.ingredients.filter(i => i.dishId === dish.id);
-                const total = dishIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-
-                if (total > 0) {
-                    let participants = dish.forAll ? state.participants : (dish.participants || []);
-                    let participantMultipliers = {};
-                    let totalMultiplier = 0;
-                    
-                    // Проверяем, все ли "Возможно"
-                    let allMaybe = true;
-                    let maybeParticipants = [];
-                    
-                    participants.forEach(p => {
-                        const normValue = getNormValue(dish.id, p);
-                        if (normValue === 2) {
-                            allMaybe = false;
-                        }
-                        if (normValue === 1) {
-                            maybeParticipants.push(p);
-                        }
-                    });
-
-                    participants.forEach(p => {
-                        const normValue = getNormValue(dish.id, p);
-                        
-                        if (allMaybe) {
-                            // Если все "Возможно", каждый платит 0.5 от равной доли
-                            if (normValue === 1) {
-                                participantMultipliers[p] = 0.5;
-                                totalMultiplier += 0.5;
-                            }
-                        } else {
-                            // Стандартный расчет
-                            if (normValue === 2) { 
-                                participantMultipliers[p] = 1; 
-                                totalMultiplier += 1; 
-                            } else if (normValue === 1) { 
-                                participantMultipliers[p] = 0.5; 
-                                totalMultiplier += 0.5; 
-                            }
-                        }
-                    });
-
-                    if (totalMultiplier > 0) {
-                        const perUnit = total / totalMultiplier;
-                        Object.keys(participantMultipliers).forEach(p => {
-                            if (perParticipant[p] !== undefined) {
-                                perParticipant[p] += perUnit * participantMultipliers[p];
-                            }
-                        });
-                    }
-                }
-            });
-
-            state.types.forEach(type => {
-                const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
-                const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-
-                if (total > 0) {
-                    let participants = type.forAll ? state.participants : (type.participants || []);
-                    if (participants.length > 0) {
-                        const perPerson = total / participants.length;
-                        participants.forEach(p => {
-                            if (perParticipant[p] !== undefined) perParticipant[p] += perPerson;
-                        });
-                    }
-                }
-            });
-
-            return perParticipant;
-        }
-
-        // ============================================
-        // PER PERSON SECTION
-        // ============================================
-        function renderPerPerson() {
-            const section = document.getElementById('perPersonSection');
-            const list = document.getElementById('perPersonList');
-
-            if (state.participants.length === 0 && state.participantCount === 0) {
-                section.classList.add('hidden');
-                return;
-            }
-
-            section.classList.remove('hidden');
-
-            if (state.participants.length > 0) {
-                const perParticipant = calculatePerParticipant();
-
-                list.innerHTML = '<div class="per-person-list">' +
-                    Object.entries(perParticipant).map(([name, amount]) => {
-                        const adjustmentStatus = getParticipantAdjustmentStatus(name);
-                        const adjustments = state.participantAdjustments[name] || [];
-                        const totalAdjustment = adjustments.reduce((sum, adj) => {
-                            return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
-                        }, 0);
-                        const finalAmount = amount + totalAdjustment;
-
-                        let badgeHtml = '', finalHtml = '';
-                        if (adjustmentStatus) {
-                            badgeHtml = `<span class="per-person-badge ${adjustmentStatus.type}">${adjustmentStatus.type === 'deduction' ? 'Есть вычет' : 'Есть добавление'}</span>`;
-                            finalHtml = `<div class="per-person-final"><span>Итого:</span><span class="per-person-final-amount">${formatMoney(finalAmount)}</span></div>`;
-                        }
-
-                        return `
-                            <div class="per-person-item" onclick="showParticipantCalcModal('${escapeHtml(name)}')">
-                                <div class="per-person-top">
-                                    <span class="per-person-name">${escapeHtml(name)}</span>
-                                    <span class="per-person-amount">${formatMoney(amount)}</span>
-                                </div>
-                                ${badgeHtml}${finalHtml}
-                            </div>
-                        `;
-                    }).join('') + '</div>';
-            } else {
-                const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-                const contingency = calculateContingency();
-                const totalCost = baseCost + contingency;
-                const perPerson = state.participantCount > 0 ? totalCost / state.participantCount : totalCost;
-                list.innerHTML = `<div class="per-person-list"><div class="per-person-item" style="cursor:default;"><div class="per-person-top"><span class="per-person-name">С каждого</span><span class="per-person-amount">${formatMoney(perPerson)}</span></div></div></div>`;
             }
         }
+    });
 
-        // ============================================
-        // NORMS TABLE - без дерганий
-        // ============================================
-        function renderNormsTable() {
-            const section = document.getElementById('normsSection');
-            const container = document.getElementById('normsTable');
-            const editable = canEdit();
+    state.types.forEach(type => {
+        const typeIngredients = state.ingredients.filter(i => i.typeId === type.id);
+        const total = typeIngredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
 
-            if (state.participants.length === 0 || state.dishes.length === 0) {
-                section.classList.add('hidden');
-                return;
+        if (total > 0) {
+            let participants = type.forAll ? state.participants : (type.participants || []);
+            if (participants.length > 0) {
+                const perPerson = total / participants.length;
+                participants.forEach(p => {
+                    if (perParticipant[p] !== undefined) perParticipant[p] += perPerson;
+                });
             }
+        }
+    });
 
-            section.classList.remove('hidden');
+    return perParticipant;
+}
 
-            let html = '<table class="norms-table"><thead><tr><th>Блюдо</th>';
+// ============================================
+// PER PERSON SECTION
+// ============================================
+function renderPerPerson() {
+    const section = document.getElementById('perPersonSection');
+    const list = document.getElementById('perPersonList');
 
-            state.participants.forEach(p => {
-                const calories = state.participantCalories[p] || 2000;
-                html += `
-                    <th class="participant-header">
-                        <div>${escapeHtml(p)}</div>
-                        <div class="calorie-input">
-                            <input type="number" value="${calories}" min="1000" max="5000" step="100" 
-                                onchange="updateCalories('${escapeHtml(p)}', this.value)" 
-                                title="Калории" ${!editable ? 'disabled' : ''}>
-                            <div class="norm-kg">${(calories * 0.6 / 1000).toFixed(2)} кг/день</div>
-                        </div>
-                    </th>
-                `;
-            });
+    if (state.participants.length === 0 && state.participantCount === 0) {
+        section.classList.add('hidden');
+        return;
+    }
 
-            html += '<th>Итого кг</th></tr></thead><tbody>';
+    section.classList.remove('hidden');
 
-            state.types.forEach(type => {
-                const typeDishes = state.dishes.filter(d => d.typeId === type.id);
-                if (typeDishes.length > 0) {
-                    html += `<tr class="type-header-row" style="background: ${type.color}22;"><td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">${escapeHtml(type.name)} <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">(норма: ${type.normKg || 0} кг/чел)</span></td></tr>`;
-                    typeDishes.forEach(dish => { html += renderNormRow(dish, type, editable); });
-                    html += renderTypeSubtotalRow(type);
+    if (state.participants.length > 0) {
+        const perParticipant = calculatePerParticipant();
+
+        list.innerHTML = '<div class="per-person-list">' +
+            Object.entries(perParticipant).map(([name, amount]) => {
+                const adjustmentStatus = getParticipantAdjustmentStatus(name);
+                const adjustments = state.participantAdjustments[name] || [];
+                const totalAdjustment = adjustments.reduce((sum, adj) => {
+                    return adj.type === 'deduction' ? sum - adj.amount : sum + adj.amount;
+                }, 0);
+                const finalAmount = amount + totalAdjustment;
+
+                let badgeHtml = '', finalHtml = '';
+                if (adjustmentStatus) {
+                    badgeHtml = `<span class="per-person-badge ${adjustmentStatus.type}">${adjustmentStatus.type === 'deduction' ? 'Есть вычет' : 'Есть добавление'}</span>`;
+                    finalHtml = `<div class="per-person-final"><span>Итого:</span><span class="per-person-final-amount">${formatMoney(finalAmount)}</span></div>`;
                 }
-            });
 
-            const dishesWithoutType = state.dishes.filter(d => !d.typeId);
-            if (dishesWithoutType.length > 0) {
-                html += `<tr class="type-header-row"><td colspan="${state.participants.length + 2}" style="font-weight: 600; text-align: left; padding: 12px;">Без категории</td></tr>`;
-                dishesWithoutType.forEach(dish => { html += renderNormRow(dish, null, editable); });
-            }
-
-            html += '</tbody></table>';
-            html += renderTypeSummary();
-            container.innerHTML = html;
-        }
-
-        function renderNormRow(dish, type, editable) {
-            const bgColor = type ? type.color + '08' : 'transparent';
-
-            let html = `<tr style="background: ${bgColor};"><td style="text-align: left; font-weight: 500; padding-left: 24px;">${escapeHtml(dish.name)}</td>`;
-
-            state.participants.forEach(p => {
-                const normValue = getNormValue(dish.id, p);
-                const kgData = calculatePersonDishKg(dish, p, type);
-                const selectStyle = getSelectStyle(normValue);
-
-                html += `
-                    <td style="vertical-align: top;">
-                        <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" style="${selectStyle}" ${!editable ? 'disabled' : ''}>
-                            <option value="0" ${normValue === 0 ? 'selected' : ''}>Не буду</option>
-                            <option value="1" ${normValue === 1 ? 'selected' : ''}>Возможно</option>
-                            <option value="2" ${normValue === 2 ? 'selected' : ''}>Буду</option>
-                        </select>
-                        <div class="norm-details" style="margin-top: 4px; font-size: 0.75rem;">
-                            <div style="font-weight: 500;">${kgData.kg.toFixed(3)} кг</div>
-                            <div style="color: var(--text-secondary); font-size: 0.7rem;">${kgData.percent > 0 ? Math.round(kgData.percent) + '%' : '-'}</div>
-                        </div>
-                    </td>
-                `;
-            });
-
-            const dishTotalKg = calculateDishTotalKg(dish, type);
-            html += `<td><strong style="color: var(--primary);">${dishTotalKg.toFixed(2)}</strong><div style="font-size: 0.7rem; color: var(--text-secondary);">кг</div></td></tr>`;
-            return html;
-        }
-
-        function renderTypeSubtotalRow(type) {
-            let html = `<tr style="background: ${type.color}15; font-weight: 500;"><td style="text-align: right; padding-right: 16px;">Итого ${escapeHtml(type.name)}:</td>`;
-            let grandTotal = 0;
-
-            state.participants.forEach(p => {
-                const personTypeKg = calculatePersonTypeKg(type, p);
-                grandTotal += personTypeKg;
-                html += `<td style="color: ${type.color};">${personTypeKg.toFixed(3)} кг</td>`;
-            });
-
-            html += `<td><strong style="color: ${type.color};">${grandTotal.toFixed(2)} кг</strong></td></tr>`;
-            return html;
-        }
-
-        function renderTypeSummary() {
-            if (state.types.length === 0) return '';
-
-            let html = '<div style="margin-top: 20px;"><h4 style="margin-bottom: 12px;">Сводка по типам</h4><div class="per-person-list">';
-
-            state.types.forEach(type => {
-                const typeTotal = calculateTypeTotalKg(type);
-                const expectedTotal = (type.normKg || 0) * state.participants.length;
-                const diff = typeTotal - expectedTotal;
-                const diffText = expectedTotal > 0 ? `(${diff >= 0 ? '+' : ''}${diff.toFixed(2)} от нормы)` : '';
-                const diffColor = diff >= 0 ? 'var(--success)' : 'var(--warning)';
-
-                html += `
-                    <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color}; cursor: default;">
+                return `
+                    <div class="per-person-item" onclick="showParticipantCalcModal('${escapeHtml(name)}')">
                         <div class="per-person-top">
-                            <span class="per-person-name">${escapeHtml(type.name)}</span>
-                            <span class="per-person-amount" style="color: ${type.color};">${typeTotal.toFixed(2)} кг</span>
+                            <span class="per-person-name">${escapeHtml(name)}</span>
+                            <span class="per-person-amount">${formatMoney(amount)}</span>
                         </div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
-                            Норма: ${type.normKg || 0} кг x ${state.participants.length} = ${expectedTotal.toFixed(2)} кг
-                            <span style="color: ${diffColor}; margin-left: 8px;">${diffText}</span>
-                        </div>
+                        ${badgeHtml}${finalHtml}
                     </div>
                 `;
-            });
+            }).join('') + '</div>';
+    } else {
+        const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+        const contingency = calculateContingency();
+        const totalCost = baseCost + contingency;
+        const perPerson = state.participantCount > 0 ? totalCost / state.participantCount : totalCost;
+        list.innerHTML = `<div class="per-person-list"><div class="per-person-item" style="cursor:default;"><div class="per-person-top"><span class="per-person-name">С каждого</span><span class="per-person-amount">${formatMoney(perPerson)}</span></div></div></div>`;
+    }
+}
 
-            html += '</div></div>';
-            return html;
-        }
+// ============================================
+// NORMS TABLE
+// ============================================
+function renderNormsTable() {
+    const section = document.getElementById('normsSection');
+    const container = document.getElementById('normsTable');
+    const editable = canEdit();
 
-        function getSelectStyle(normValue) {
-            if (normValue === 0) return 'color: var(--danger); background: #fee;';
-            if (normValue === 1) return 'color: var(--warning); background: #fffbe6;';
-            return 'color: var(--success); background: #f0fff0;';
-        }
+    if (state.participants.length === 0 || state.dishes.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
 
-        function updateNorm(dishId, participant, value) {
-            if (!canEdit()) return;
-            if (!state.norms[dishId]) state.norms[dishId] = {};
-            state.norms[dishId][participant] = parseInt(value);
-            saveSession();
-            
-            // Используем requestAnimationFrame для плавного обновления
-            requestAnimationFrame(() => {
-                renderNormsTable();
-                renderPerPerson();
-                renderSummary();
-            });
-        }
+    section.classList.remove('hidden');
 
-        function updateCalories(participant, value) {
-            if (!canEdit()) return;
-            state.participantCalories[participant] = parseInt(value) || 2000;
-            saveSession();
-            
-            requestAnimationFrame(() => {
-                renderNormsTable();
-            });
-        }
+    let html = '<table class="norms-table"><thead><tr><th>Блюдо</th>';
 
-        // ============================================
-        // SHOPPING LIST
-        // ============================================
-        function renderShoppingList() {
-            const container = document.getElementById('shoppingList');
-            const editable = canEdit();
-
-            if (state.ingredients.length === 0) {
-                container.innerHTML = '<p class="empty-message">Добавьте ингредиенты</p>';
-                document.getElementById('purchasedCount').textContent = '0';
-                document.getElementById('totalCount').textContent = '0';
-                document.getElementById('progressFill').style.width = '0%';
-                return;
-            }
-
-            const grouped = {};
-            state.ingredients.forEach(ing => {
-                const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
-                if (!grouped[key]) {
-                    grouped[key] = { id: key, name: ing.name, shop: ing.shop, unit: ing.unit, quantity: 0, totalPrice: 0, sources: [] };
-                }
-                grouped[key].quantity += ing.quantity;
-                grouped[key].totalPrice += ing.quantity * ing.price;
-
-                if (ing.dishId) {
-                    const dish = state.dishes.find(d => d.id === ing.dishId);
-                    if (dish) grouped[key].sources.push(dish.name);
-                }
-                if (ing.typeId) {
-                    const type = state.types.find(t => t.id === ing.typeId);
-                    if (type) grouped[key].sources.push(type.name);
-                }
-            });
-
-            const items = Object.values(grouped);
-            const purchasedCount = items.filter(item => state.purchased[item.id]).length;
-            const totalCount = items.length;
-
-            document.getElementById('purchasedCount').textContent = purchasedCount;
-            document.getElementById('totalCount').textContent = totalCount;
-            document.getElementById('progressFill').style.width = totalCount > 0 ? `${(purchasedCount / totalCount) * 100}%` : '0%';
-
-            let html = `<div class="shopping-item shopping-header"><span></span><span>Название</span><span>Кол-во</span><span>Магазин</span><span>Цена</span></div>`;
-
-            items.sort((a, b) => {
-                const aPurchased = state.purchased[a.id] ? 1 : 0;
-                const bPurchased = state.purchased[b.id] ? 1 : 0;
-                if (aPurchased !== bPurchased) return aPurchased - bPurchased;
-                return a.name.localeCompare(b.name, 'ru');
-            });
-
-            items.forEach(item => {
-                const isPurchased = state.purchased[item.id];
-                const sourcesText = [...new Set(item.sources)].join(', ');
-                const escapedId = item.id.replace(/'/g, "\\'");
-
-                html += `
-                    <div class="shopping-item ${isPurchased ? 'purchased' : ''}">
-                        <input type="checkbox" class="shopping-checkbox" ${isPurchased ? 'checked' : ''} onchange="togglePurchased('${escapedId}')" ${!editable ? 'disabled' : ''}>
-                        <div class="shopping-item-name">${escapeHtml(item.name)}<div style="font-size: 0.7rem; color: var(--text-secondary);">${escapeHtml(sourcesText)}</div></div>
-                        <span class="shopping-item-quantity">${formatQuantity(item.quantity, item.unit)}</span>
-                        <span class="shopping-item-shop">${escapeHtml(item.shop || '-')}</span>
-                        <span class="shopping-item-price">${formatMoney(item.totalPrice)}</span>
-                    </div>
-                `;
-            });
-
-            const grandTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-            const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
-
-            html += `<div class="shopping-item shopping-total"><span></span><span>ИТОГО</span><span>${totalCount} поз.</span><span>Куплено: ${formatMoney(purchasedTotal)}</span><span class="shopping-item-price">${formatMoney(grandTotal)}</span></div>`;
-
-            container.innerHTML = html;
-        }
-
-        function togglePurchased(itemId) {
-            if (!canEdit()) return;
-            state.purchased[itemId] = !state.purchased[itemId];
-            saveSession();
-            renderShoppingList();
-            renderSummary();
-        }
-
-        function formatQuantity(quantity, unit) {
-            if (unit === 'шт' || unit === 'уп') return `${Math.ceil(quantity)} ${unit}`;
-            return `${quantity.toFixed(2)} ${unit}`;
-        }
-
-        // ============================================
-        // SUMMARY
-        // ============================================
-        function renderSummary() {
-            const container = document.getElementById('summaryContent');
-            const editable = canEdit();
-
-            const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-            const contingency = calculateContingency();
-            const totalCost = baseCost + contingency;
-            const totalDishes = state.dishes.length;
-            const participantsCount = state.participants.length || state.participantCount || 1;
-            const perPerson = totalCost / participantsCount;
-
-            const grouped = {};
-            state.ingredients.forEach(ing => {
-                const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
-                if (!grouped[key]) grouped[key] = { id: key, totalPrice: 0 };
-                grouped[key].totalPrice += ing.quantity * ing.price;
-            });
-
-            const items = Object.values(grouped);
-            const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
-
-            const contingencyText = state.contingency.type === 'percent' ? `${state.contingency.value}%` : 'Фикс.';
-
-            container.innerHTML = `
-                <div class="summary-grid">
-                    <div class="summary-card highlight">
-                        <div class="summary-value">${formatMoney(totalCost)}</div>
-                        <div class="summary-label">Общая стоимость</div>
-                    </div>
-                    <div class="summary-card contingency ${editable ? 'clickable' : ''}" onclick="${editable ? 'showContingencyModal()' : ''}">
-                        <div class="summary-value">${formatMoney(contingency)}</div>
-                        <div class="summary-label">Непредвиденные</div>
-                        ${state.contingency.value > 0 ? `<div class="summary-hint">${contingencyText}</div>` : ''}
-                        ${editable ? '<div class="summary-hint">Нажмите для изменения</div>' : ''}
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-value">${formatMoney(perPerson)}</div>
-                        <div class="summary-label">С каждого (${participantsCount} чел.)</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-value">${totalDishes}</div>
-                        <div class="summary-label">${pluralize(totalDishes, 'блюдо', 'блюда', 'блюд')}</div>
-                    </div>
-                    <div class="summary-card" style="border: 2px solid var(--success);">
-                        <div class="summary-value" style="color: var(--success);">${formatMoney(purchasedTotal)}</div>
-                        <div class="summary-label">Куплено</div>
-                    </div>
-                    <div class="summary-card" style="border: 2px solid var(--warning);">
-                        <div class="summary-value" style="color: var(--warning);">${formatMoney(totalCost - purchasedTotal)}</div>
-                        <div class="summary-label">Осталось</div>
-                    </div>
+    state.participants.forEach(p => {
+        const calories = state.participantCalories[p] || 2000;
+        html += `
+            <th class="participant-header">
+                <div>${escapeHtml(p)}</div>
+                <div class="calorie-input">
+                    <input type="number" value="${calories}" min="1000" max="5000" step="100" 
+                        onchange="updateCalories('${escapeHtml(p)}', this.value)" 
+                        title="Калории" ${!editable ? 'disabled' : ''}>
+                    <div class="norm-kg">${(calories * 0.6 / 1000).toFixed(2)} кг/день</div>
                 </div>
-            `;
-        }
+            </th>
+        `;
+    });
 
-        // ============================================
-        // UTILITIES
-        // ============================================
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+    html += '<th>Итого кг</th></tr></thead><tbody>';
 
-        function formatMoney(amount) {
-            return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+    state.types.forEach(type => {
+        const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+        if (typeDishes.length > 0) {
+            html += `<tr class="type-header-row" style="background: ${type.color}22;"><td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">${escapeHtml(type.name)} <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">(норма: ${type.normKg || 0} кг/чел)</span></td></tr>`;
+            typeDishes.forEach(dish => { html += renderNormRow(dish, type, editable); });
+            html += renderTypeSubtotalRow(type);
         }
+    });
 
-        function formatDate(dateString) {
-            try {
-                return new Date(dateString).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-            } catch (e) { return ''; }
-        }
+    const dishesWithoutType = state.dishes.filter(d => !d.typeId);
+    if (dishesWithoutType.length > 0) {
+        html += `<tr class="type-header-row"><td colspan="${state.participants.length + 2}" style="font-weight: 600; text-align: left; padding: 12px;">Без категории</td></tr>`;
+        dishesWithoutType.forEach(dish => { html += renderNormRow(dish, null, editable); });
+    }
 
-        function pluralize(n, one, few, many) {
-            const mod10 = n % 10, mod100 = n % 100;
-            if (mod100 >= 11 && mod100 <= 19) return many;
-            if (mod10 === 1) return one;
-            if (mod10 >= 2 && mod10 <= 4) return few;
-            return many;
-        }
+    html += '</tbody></table>';
+    html += renderTypeSummary();
+    container.innerHTML = html;
+}
 
-        function adjustColor(hex, percent) {
-            const num = parseInt(hex.replace('#', ''), 16);
-            const amt = Math.round(2.55 * percent);
-            const R = Math.min(255, Math.max(0, (num >> 16) + amt));
-            const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
-            const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-        }
+function renderNormRow(dish, type, editable) {
+    const bgColor = type ? type.color + '08' : 'transparent';
 
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100px)';
-                setTimeout(() => toast.remove(), 300);
-            }, 2500);
+    let html = `<tr style="background: ${bgColor};"><td style="text-align: left; font-weight: 500; padding-left: 24px;">${escapeHtml(dish.name)}</td>`;
+
+    state.participants.forEach(p => {
+        const normValue = getNormValue(dish.id, p);
+        const kgData = calculatePersonDishKg(dish, p, type);
+        const selectStyle = getSelectStyle(normValue);
+
+        html += `
+            <td style="vertical-align: top;">
+                <select onchange="updateNorm('${dish.id}', '${escapeHtml(p)}', this.value)" style="${selectStyle}" ${!editable ? 'disabled' : ''}>
+                    <option value="0" ${normValue === 0 ? 'selected' : ''}>Не буду</option>
+                    <option value="1" ${normValue === 1 ? 'selected' : ''}>Возможно</option>
+                    <option value="2" ${normValue === 2 ? 'selected' : ''}>Буду</option>
+                </select>
+                <div class="norm-details" style="margin-top: 4px; font-size: 0.75rem;">
+                    <div style="font-weight: 500;">${kgData.kg.toFixed(3)} кг</div>
+                    <div style="color: var(--text-secondary); font-size: 0.7rem;">${kgData.percent > 0 ? Math.round(kgData.percent) + '%' : '-'}</div>
+                </div>
+            </td>
+        `;
+    });
+
+    const dishTotalKg = calculateDishTotalKg(dish, type);
+    html += `<td><strong style="color: var(--primary);">${dishTotalKg.toFixed(2)}</strong><div style="font-size: 0.7rem; color: var(--text-secondary);">кг</div></td></tr>`;
+    return html;
+}
+
+function renderTypeSubtotalRow(type) {
+    let html = `<tr style="background: ${type.color}15; font-weight: 500;"><td style="text-align: right; padding-right: 16px;">Итого ${escapeHtml(type.name)}:</td>`;
+    let grandTotal = 0;
+
+    state.participants.forEach(p => {
+        const personTypeKg = calculatePersonTypeKg(type, p);
+        grandTotal += personTypeKg;
+        html += `<td style="color: ${type.color};">${personTypeKg.toFixed(3)} кг</td>`;
+    });
+
+    html += `<td><strong style="color: ${type.color};">${grandTotal.toFixed(2)} кг</strong></td></tr>`;
+    return html;
+}
+
+function renderTypeSummary() {
+    if (state.types.length === 0) return '';
+
+    let html = '<div style="margin-top: 20px;"><h4 style="margin-bottom: 12px;">Сводка по типам</h4><div class="per-person-list">';
+
+    state.types.forEach(type => {
+        const typeTotal = calculateTypeTotalKg(type);
+        const expectedTotal = (type.normKg || 0) * state.participants.length;
+        const diff = typeTotal - expectedTotal;
+        const diffText = expectedTotal > 0 ? `(${diff >= 0 ? '+' : ''}${diff.toFixed(2)} от нормы)` : '';
+        const diffColor = diff >= 0 ? 'var(--success)' : 'var(--warning)';
+
+        html += `
+            <div class="per-person-item" style="background: linear-gradient(135deg, ${type.color}22 0%, ${type.color}11 100%); border-left: 4px solid ${type.color}; cursor: default;">
+                <div class="per-person-top">
+                    <span class="per-person-name">${escapeHtml(type.name)}</span>
+                    <span class="per-person-amount" style="color: ${type.color};">${typeTotal.toFixed(2)} кг</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                    Норма: ${type.normKg || 0} кг x ${state.participants.length} = ${expectedTotal.toFixed(2)} кг
+                    <span style="color: ${diffColor}; margin-left: 8px;">${diffText}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div></div>';
+    return html;
+}
+
+function getSelectStyle(normValue) {
+    if (normValue === 0) return 'color: var(--danger); background: #fee;';
+    if (normValue === 1) return 'color: var(--warning); background: #fffbe6;';
+    return 'color: var(--success); background: #f0fff0;';
+}
+
+function updateNorm(dishId, participant, value) {
+    if (!canEdit()) return;
+    if (!state.norms[dishId]) state.norms[dishId] = {};
+    state.norms[dishId][participant] = parseInt(value);
+    saveSession();
+    
+    // Обновляем только нужные части без полного рендера
+    renderNormsTableContent();
+    renderPerPerson();
+    renderSummary();
+}
+
+// Отдельная функция для обновления только содержимого таблицы норм
+function renderNormsTableContent() {
+    const container = document.getElementById('normsTable');
+    const editable = canEdit();
+
+    if (state.participants.length === 0 || state.dishes.length === 0) {
+        return;
+    }
+
+    let html = '<table class="norms-table"><thead><tr><th>Блюдо</th>';
+
+    state.participants.forEach(p => {
+        const calories = state.participantCalories[p] || 2000;
+        html += `
+            <th class="participant-header">
+                <div>${escapeHtml(p)}</div>
+                <div class="calorie-input">
+                    <input type="number" value="${calories}" min="1000" max="5000" step="100" 
+                        onchange="updateCalories('${escapeHtml(p)}', this.value)" 
+                        title="Калории" ${!editable ? 'disabled' : ''}>
+                    <div class="norm-kg">${(calories * 0.6 / 1000).toFixed(2)} кг/день</div>
+                </div>
+            </th>
+        `;
+    });
+
+    html += '<th>Итого кг</th></tr></thead><tbody>';
+
+    state.types.forEach(type => {
+        const typeDishes = state.dishes.filter(d => d.typeId === type.id);
+        if (typeDishes.length > 0) {
+            html += `<tr class="type-header-row" style="background: ${type.color}22;"><td colspan="${state.participants.length + 2}" style="font-weight: 600; color: ${type.color}; text-align: left; padding: 12px;">${escapeHtml(type.name)} <span style="font-weight: 400; font-size: 0.8rem; color: var(--text-secondary);">(норма: ${type.normKg || 0} кг/чел)</span></td></tr>`;
+            typeDishes.forEach(dish => { html += renderNormRow(dish, type, editable); });
+            html += renderTypeSubtotalRow(type);
         }
+    });
+
+    const dishesWithoutType = state.dishes.filter(d => !d.typeId);
+    if (dishesWithoutType.length > 0) {
+        html += `<tr class="type-header-row"><td colspan="${state.participants.length + 2}" style="font-weight: 600; text-align: left; padding: 12px;">Без категории</td></tr>`;
+        dishesWithoutType.forEach(dish => { html += renderNormRow(dish, null, editable); });
+    }
+
+    html += '</tbody></table>';
+    html += renderTypeSummary();
+    container.innerHTML = html;
+}
+
+function updateCalories(participant, value) {
+    if (!canEdit()) return;
+    state.participantCalories[participant] = parseInt(value) || 2000;
+    saveSession();
+    renderNormsTableContent();
+}
+
+// ============================================
+// SHOPPING LIST
+// ============================================
+function renderShoppingList() {
+    const container = document.getElementById('shoppingList');
+    const editable = canEdit();
+
+    if (state.ingredients.length === 0) {
+        container.innerHTML = '<p class="empty-message">Добавьте ингредиенты</p>';
+        document.getElementById('purchasedCount').textContent = '0';
+        document.getElementById('totalCount').textContent = '0';
+        document.getElementById('progressFill').style.width = '0%';
+        return;
+    }
+
+    const grouped = {};
+    state.ingredients.forEach(ing => {
+        const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
+        if (!grouped[key]) {
+            grouped[key] = { id: key, name: ing.name, shop: ing.shop, unit: ing.unit, quantity: 0, totalPrice: 0, sources: [] };
+        }
+        grouped[key].quantity += ing.quantity;
+        grouped[key].totalPrice += ing.quantity * ing.price;
+
+        if (ing.dishId) {
+            const dish = state.dishes.find(d => d.id === ing.dishId);
+            if (dish) grouped[key].sources.push(dish.name);
+        }
+        if (ing.typeId) {
+            const type = state.types.find(t => t.id === ing.typeId);
+            if (type) grouped[key].sources.push(type.name);
+        }
+    });
+
+    const items = Object.values(grouped);
+    const purchasedCount = items.filter(item => state.purchased[item.id]).length;
+    const totalCount = items.length;
+
+    document.getElementById('purchasedCount').textContent = purchasedCount;
+    document.getElementById('totalCount').textContent = totalCount;
+    document.getElementById('progressFill').style.width = totalCount > 0 ? `${(purchasedCount / totalCount) * 100}%` : '0%';
+
+    let html = `<div class="shopping-item shopping-header"><span></span><span>Название</span><span>Кол-во</span><span>Магазин</span><span>Цена</span></div>`;
+
+    items.sort((a, b) => {
+        const aPurchased = state.purchased[a.id] ? 1 : 0;
+        const bPurchased = state.purchased[b.id] ? 1 : 0;
+        if (aPurchased !== bPurchased) return aPurchased - bPurchased;
+        return a.name.localeCompare(b.name, 'ru');
+    });
+
+    items.forEach(item => {
+        const isPurchased = state.purchased[item.id];
+        const sourcesText = [...new Set(item.sources)].join(', ');
+        const escapedId = item.id.replace(/'/g, "\\'");
+
+        html += `
+            <div class="shopping-item ${isPurchased ? 'purchased' : ''}">
+                <input type="checkbox" class="shopping-checkbox" ${isPurchased ? 'checked' : ''} onchange="togglePurchased('${escapedId}')" ${!editable ? 'disabled' : ''}>
+                <div class="shopping-item-name">${escapeHtml(item.name)}<div style="font-size: 0.7rem; color: var(--text-secondary);">${escapeHtml(sourcesText)}</div></div>
+                <span class="shopping-item-quantity">${formatQuantity(item.quantity, item.unit)}</span>
+                <span class="shopping-item-shop">${escapeHtml(item.shop || '-')}</span>
+                <span class="shopping-item-price">${formatMoney(item.totalPrice)}</span>
+            </div>
+        `;
+    });
+
+    const grandTotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
+
+    html += `<div class="shopping-item shopping-total"><span></span><span>ИТОГО</span><span>${totalCount} поз.</span><span>Куплено: ${formatMoney(purchasedTotal)}</span><span class="shopping-item-price">${formatMoney(grandTotal)}</span></div>`;
+
+    container.innerHTML = html;
+}
+
+function togglePurchased(itemId) {
+    if (!canEdit()) return;
+    state.purchased[itemId] = !state.purchased[itemId];
+    saveSession();
+    renderShoppingList();
+    renderSummary();
+}
+
+function formatQuantity(quantity, unit) {
+    if (unit === 'шт' || unit === 'уп') return `${Math.ceil(quantity)} ${unit}`;
+    return `${quantity.toFixed(2)} ${unit}`;
+}
+
+// ============================================
+// SUMMARY
+// ============================================
+function renderSummary() {
+    const container = document.getElementById('summaryContent');
+    const editable = canEdit();
+
+    const baseCost = state.ingredients.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+    const contingency = calculateContingency();
+    const totalCost = baseCost + contingency;
+    const totalDishes = state.dishes.length;
+    const participantsCount = state.participants.length || state.participantCount || 1;
+    const perPerson = totalCost / participantsCount;
+
+    const grouped = {};
+    state.ingredients.forEach(ing => {
+        const key = `${ing.name.toLowerCase().trim()}|||${(ing.shop || '').toLowerCase().trim()}|||${ing.unit}`;
+        if (!grouped[key]) grouped[key] = { id: key, totalPrice: 0 };
+        grouped[key].totalPrice += ing.quantity * ing.price;
+    });
+
+    const items = Object.values(grouped);
+    const purchasedTotal = items.filter(item => state.purchased[item.id]).reduce((sum, item) => sum + item.totalPrice, 0);
+
+    const contingencyText = state.contingency.type === 'percent' ? `${state.contingency.value}%` : 'Фикс.';
+
+    container.innerHTML = `
+        <div class="summary-grid">
+            <div class="summary-card highlight">
+                <div class="summary-value">${formatMoney(totalCost)}</div>
+                <div class="summary-label">Общая стоимость</div>
+            </div>
+            <div class="summary-card contingency ${editable ? 'clickable' : ''}" onclick="${editable ? 'showContingencyModal()' : ''}">
+                <div class="summary-value">${formatMoney(contingency)}</div>
+                <div class="summary-label">Непредвиденные</div>
+                ${state.contingency.value > 0 ? `<div class="summary-hint">${contingencyText}</div>` : ''}
+                ${editable ? '<div class="summary-hint">Нажмите для изменения</div>' : ''}
+            </div>
+            <div class="summary-card">
+                <div class="summary-value">${formatMoney(perPerson)}</div>
+                <div class="summary-label">С каждого (${participantsCount} чел.)</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-value">${totalDishes}</div>
+                <div class="summary-label">${pluralize(totalDishes, 'блюдо', 'блюда', 'блюд')}</div>
+            </div>
+            <div class="summary-card" style="border: 2px solid var(--success);">
+                <div class="summary-value" style="color: var(--success);">${formatMoney(purchasedTotal)}</div>
+                <div class="summary-label">Куплено</div>
+            </div>
+            <div class="summary-card" style="border: 2px solid var(--warning);">
+                <div class="summary-value" style="color: var(--warning);">${formatMoney(totalCost - purchasedTotal)}</div>
+                <div class="summary-label">Осталось</div>
+            </div>
+        </div>
+    `;
+}
+
+// ============================================
+// UTILITIES
+// ============================================
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatMoney(amount) {
+    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
+}
+
+function formatDate(dateString) {
+    try {
+        return new Date(dateString).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch (e) { return ''; }
+}
+
+function pluralize(n, one, few, many) {
+    const mod10 = n % 10, mod100 = n % 100;
+    if (mod100 >= 11 && mod100 <= 19) return many;
+    if (mod10 === 1) return one;
+    if (mod10 >= 2 && mod10 <= 4) return few;
+    return many;
+}
+
+function adjustColor(hex, percent) {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+    const G = Math.min(255, Math.max(0, (num >> 8 & 0x00FF) + amt));
+    const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+    return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
     </script>
 </body>
 </html>
+
 
