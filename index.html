@@ -78,6 +78,11 @@
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         .pulse { animation: pulse 2s infinite; }
 
+        /* Плавные переходы для контента */
+        .smooth-update {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
         .container { max-width: 1200px; margin: 0 auto; }
 
         .card {
@@ -192,6 +197,7 @@
             padding: 6px 12px;
             border-radius: 20px;
             background: var(--secondary);
+            transition: var(--transition);
         }
 
         .sync-status.online {
@@ -214,6 +220,7 @@
             height: 8px;
             border-radius: 50%;
             background: currentColor;
+            transition: var(--transition);
         }
 
         .sync-status.syncing .sync-dot {
@@ -603,6 +610,7 @@
             padding: 12px 10px;
             text-align: center;
             border-bottom: 1px solid var(--border);
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
 
         .norms-table th {
@@ -619,7 +627,7 @@
 
         .norms-table th:last-child { border-radius: 0 var(--radius) 0 0; }
 
-        .norms-table tbody tr { transition: var(--transition-fast); }
+        .norms-table tbody tr { transition: background-color 0.2s ease; }
         .norms-table tbody tr:hover { background: rgba(0, 0, 0, 0.02); }
 
         .norms-table input[type="number"] {
@@ -667,12 +675,14 @@
             font-size: 0.7rem;
             color: var(--text-secondary);
             margin-top: 2px;
+            transition: color 0.2s ease;
         }
 
         .norm-details {
             display: flex;
             flex-direction: column;
             align-items: center;
+            transition: opacity 0.2s ease;
         }
 
         .participant-header { min-width: 110px; padding: 8px !important; }
@@ -830,6 +840,7 @@
             font-weight: 700;
             color: var(--primary);
             margin-bottom: 4px;
+            transition: color 0.2s ease;
         }
 
         .summary-label {
@@ -911,11 +922,13 @@
             flex-wrap: wrap;
         }
 
+        /* Исправленный toggle switch - не сбрасывается при обновлениях */
         .toggle-switch {
             display: flex;
             align-items: center;
             gap: 10px;
             cursor: pointer;
+            user-select: none;
         }
 
         .toggle-switch input {
@@ -928,7 +941,8 @@
             background: #ccc;
             border-radius: 24px;
             position: relative;
-            transition: var(--transition);
+            transition: background-color 0.3s ease;
+            flex-shrink: 0;
         }
 
         .toggle-slider::before {
@@ -940,7 +954,8 @@
             border-radius: 50%;
             top: 2px;
             left: 2px;
-            transition: var(--transition);
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .toggle-switch input:checked + .toggle-slider {
@@ -1292,6 +1307,7 @@
             border-radius: var(--radius);
             box-shadow: var(--shadow-lg);
             animation: slideUp 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
         .toast.success { background: var(--success); }
@@ -1377,7 +1393,7 @@
         <div id="sessionsPage" class="hidden">
             <div class="card fade-in">
                 <div class="logo">
-                    <img src= "logo.png" alt="Бублек.ру" class="logo-img">
+                    <img src="logo.png" alt="Бублек.ру" class="logo-img">
                     <div class="logo-text">
                         <div class="logo-title">Бублек.ру</div>
                         <div class="logo-subtitle">Еда</div>
@@ -1516,15 +1532,15 @@
         // ============================================
         // FIREBASE CONFIGURATION
         // ============================================
-    const firebaseConfig = {
-  apiKey: "AIzaSyBuQkcqVg_30Fho3Svq7Zz75Abwqcp5MBE",
-  authDomain: "mikhailnbublek1.firebaseapp.com",
-  databaseURL: "https://mikhailnbublek1-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "mikhailnbublek1",
-  storageBucket: "mikhailnbublek1.firebasestorage.app",
-  messagingSenderId: "79990577838",
-  appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBuQkcqVg_30Fho3Svq7Zz75Abwqcp5MBE",
+            authDomain: "mikhailnbublek1.firebaseapp.com",
+            databaseURL: "https://mikhailnbublek1-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "mikhailnbublek1",
+            storageBucket: "mikhailnbublek1.firebasestorage.app",
+            messagingSenderId: "79990577838",
+            appId: "1:79990577838:web:fdb2fa015da9adb2b16b3f"
+        };
 
         let database;
         let firebaseInitialized = false;
@@ -1562,6 +1578,10 @@
         let isOnline = true;
         let syncTimeout = null;
         let localSessions = {};
+        
+        // Флаг для предотвращения повторных рендеров
+        let isRendering = false;
+        let pendingRender = false;
 
         // ============================================
         // LOCAL STORAGE
@@ -1849,7 +1869,7 @@
             state.contingency = data.contingency || { type: 'percent', value: 0 };
 
             setupUIForPermissions();
-            render();
+            renderSmooth();
             updateSyncStatus();
         }
 
@@ -1860,9 +1880,12 @@
             document.getElementById('readonlyBanner').classList.toggle('hidden', canEditData);
             document.getElementById('ownerControls').classList.toggle('hidden', !isOwner);
 
+            // Обновляем тумблер без сброса анимации
             if (isOwner) {
                 const toggle = document.getElementById('readonlyToggle');
-                if (toggle) toggle.checked = state.isReadonly;
+                if (toggle && toggle.checked !== state.isReadonly) {
+                    toggle.checked = state.isReadonly;
+                }
             }
 
             document.getElementById('participantsInput').disabled = !canEditData;
@@ -2204,7 +2227,7 @@
             showToast('Сохранено', 'success');
         }
 
-                function clearContingency() {
+        function clearContingency() {
             state.contingency = { type: 'percent', value: 0 };
             saveSession();
             closeModal();
@@ -2739,14 +2762,35 @@
         }
 
         // ============================================
-        // RENDER
+        // RENDER - с плавными обновлениями
         // ============================================
         function render() {
+            if (isRendering) {
+                pendingRender = true;
+                return;
+            }
+            
+            isRendering = true;
+            
             renderMainField();
             renderPerPerson();
             renderNormsTable();
             renderShoppingList();
             renderSummary();
+            
+            isRendering = false;
+            
+            if (pendingRender) {
+                pendingRender = false;
+                requestAnimationFrame(() => render());
+            }
+        }
+        
+        // Плавный рендер для удаленных обновлений
+        function renderSmooth() {
+            requestAnimationFrame(() => {
+                render();
+            });
         }
 
         function renderMainField() {
@@ -2755,14 +2799,14 @@
             let html = '';
 
             state.types.forEach((type, index) => {
-                html += `<div class="type-container fade-in" style="animation-delay: ${index * 0.05}s">`;
+                html += `<div class="type-container" style="opacity: 0; animation: fadeIn 0.3s ease forwards; animation-delay: ${index * 0.03}s">`;
                 html += renderType(type, editable);
                 html += `</div>`;
             });
 
             const dishesWithoutType = state.dishes.filter(d => !d.typeId);
             dishesWithoutType.forEach((dish, index) => {
-                html += `<div class="dish-container fade-in" style="animation-delay: ${(state.types.length + index) * 0.05}s">`;
+                html += `<div class="dish-container" style="opacity: 0; animation: fadeIn 0.3s ease forwards; animation-delay: ${(state.types.length + index) * 0.03}s">`;
                 html += renderDish(dish, editable);
                 html += `</div>`;
             });
@@ -2873,7 +2917,7 @@
         }
 
         // ============================================
-        // CALCULATIONS
+        // CALCULATIONS - ИСПРАВЛЕННЫЙ ПОДСЧЕТ
         // ============================================
         function getNormValue(dishId, participant) {
             if (state.norms[dishId] && state.norms[dishId][participant] !== undefined) {
@@ -2893,11 +2937,41 @@
         function calculatePerPersonForDish(dish, total) {
             if (state.participants.length > 0) {
                 let totalMultiplier = 0;
-                state.participants.forEach(p => {
+                const dishParticipants = dish.forAll ? state.participants : (dish.participants || []);
+                
+                // Проверяем, все ли участники имеют статус "Возможно" (1)
+                let allMaybe = true;
+                let hasSomeParticipation = false;
+                
+                dishParticipants.forEach(p => {
                     const normValue = getNormValue(dish.id, p);
-                    if (normValue === 2) totalMultiplier += 1;
-                    else if (normValue === 1) totalMultiplier += 0.5;
+                    if (normValue === 2) {
+                        allMaybe = false;
+                        totalMultiplier += 1;
+                        hasSomeParticipation = true;
+                    } else if (normValue === 1) {
+                        hasSomeParticipation = true;
+                        if (!allMaybe) {
+                            totalMultiplier += 0.5;
+                        }
+                    }
                 });
+                
+                // Если все участники выбрали "Возможно", считаем как 0.5 от равного распределения
+                if (allMaybe && hasSomeParticipation) {
+                    // Количество участников с "Возможно"
+                    let maybeCount = 0;
+                    dishParticipants.forEach(p => {
+                        const normValue = getNormValue(dish.id, p);
+                        if (normValue === 1) maybeCount++;
+                    });
+                    
+                    if (maybeCount > 0) {
+                        // Каждый платит как будто участвует на 0.5, но делим на всех
+                        totalMultiplier = maybeCount * 0.5;
+                    }
+                }
+                
                 if (totalMultiplier === 0) return 0;
                 return total / totalMultiplier;
             }
@@ -2913,10 +2987,29 @@
 
             let totalWeight = 0;
             const dishWeights = {};
+            
+            // Проверяем, все ли блюда имеют статус "Возможно"
+            let allMaybe = true;
 
             typeDishes.forEach(d => {
                 const normValue = getNormValue(d.id, participant);
-                const weight = normValue === 2 ? 2 : normValue === 1 ? 1 : 0;
+                if (normValue === 2) {
+                    allMaybe = false;
+                }
+            });
+
+            typeDishes.forEach(d => {
+                const normValue = getNormValue(d.id, participant);
+                let weight;
+                
+                if (allMaybe) {
+                    // Если все "Возможно", каждое блюдо получает вес 0.5
+                    weight = normValue === 1 ? 0.5 : 0;
+                } else {
+                    // Стандартный расчет
+                    weight = normValue === 2 ? 2 : normValue === 1 ? 1 : 0;
+                }
+                
                 dishWeights[d.id] = weight;
                 totalWeight += weight;
             });
@@ -2974,11 +3067,40 @@
                     let participants = dish.forAll ? state.participants : (dish.participants || []);
                     let participantMultipliers = {};
                     let totalMultiplier = 0;
+                    
+                    // Проверяем, все ли "Возможно"
+                    let allMaybe = true;
+                    let maybeParticipants = [];
+                    
+                    participants.forEach(p => {
+                        const normValue = getNormValue(dish.id, p);
+                        if (normValue === 2) {
+                            allMaybe = false;
+                        }
+                        if (normValue === 1) {
+                            maybeParticipants.push(p);
+                        }
+                    });
 
                     participants.forEach(p => {
                         const normValue = getNormValue(dish.id, p);
-                        if (normValue === 2) { participantMultipliers[p] = 1; totalMultiplier += 1; }
-                        else if (normValue === 1) { participantMultipliers[p] = 0.5; totalMultiplier += 0.5; }
+                        
+                        if (allMaybe) {
+                            // Если все "Возможно", каждый платит 0.5 от равной доли
+                            if (normValue === 1) {
+                                participantMultipliers[p] = 0.5;
+                                totalMultiplier += 0.5;
+                            }
+                        } else {
+                            // Стандартный расчет
+                            if (normValue === 2) { 
+                                participantMultipliers[p] = 1; 
+                                totalMultiplier += 1; 
+                            } else if (normValue === 1) { 
+                                participantMultipliers[p] = 0.5; 
+                                totalMultiplier += 0.5; 
+                            }
+                        }
                     });
 
                     if (totalMultiplier > 0) {
@@ -3062,7 +3184,7 @@
         }
 
         // ============================================
-        // NORMS TABLE
+        // NORMS TABLE - без дерганий
         // ============================================
         function renderNormsTable() {
             const section = document.getElementById('normsSection');
@@ -3200,14 +3322,23 @@
             if (!state.norms[dishId]) state.norms[dishId] = {};
             state.norms[dishId][participant] = parseInt(value);
             saveSession();
-            render();
+            
+            // Используем requestAnimationFrame для плавного обновления
+            requestAnimationFrame(() => {
+                renderNormsTable();
+                renderPerPerson();
+                renderSummary();
+            });
         }
 
         function updateCalories(participant, value) {
             if (!canEdit()) return;
             state.participantCalories[participant] = parseInt(value) || 2000;
             saveSession();
-            render();
+            
+            requestAnimationFrame(() => {
+                renderNormsTable();
+            });
         }
 
         // ============================================
@@ -3408,10 +3539,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
